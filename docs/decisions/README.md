@@ -6,3 +6,5 @@ Decision records preserve choices that affect future implementation. Add a new n
 - [ADR-002: Use Android SpeechRecognizer](ADR-002-android-speech-recognizer.md)
 - [ADR-003: Keep contact data on-device](ADR-003-on-device-contacts.md)
 - [ADR-004: Use Room for the future local data layer](ADR-004-room-local-data-layer.md)
+
+- [ADR-005: Manage speech vocabulary locally](ADR-005-local-dictionary-management.md)

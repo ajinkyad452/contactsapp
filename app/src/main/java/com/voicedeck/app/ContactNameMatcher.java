@@ -1,5 +1,7 @@
 package com.voicedeck.app;
 
+import com.voicedeck.app.speech.SpeechCommandFilter;
+
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -9,7 +11,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.Arrays;
 
 /**
  * Local-only contact name detection for VoiceDeck.
@@ -42,38 +43,6 @@ public final class ContactNameMatcher {
             return matches;
         }
     }
-
-    private static final Set<String> FILTER_WORDS =
-        new HashSet<>(Arrays.asList(
-                "call",
-                "contact",
-                "phone",
-                "dial",
-                "number",
-                "mobile",
-                "please",
-                "hey",
-                "hi",
-                "hello",
-                "good",
-                "morning",
-                "afternoon",
-                "evening",
-                "namaste",
-                "namaskar",
-                "find",
-                "search",
-                "show",
-                "open",
-                "get",
-                "the",
-                "a",
-                "an",
-                "my",
-                "me",
-                "to",
-                "for"
-        ));
 
     private static final class IndexedContact {
         final ContactItem contact;
@@ -119,6 +88,10 @@ public final class ContactNameMatcher {
     }
 
     public Result resolve(String spokenText) {
+        return resolve(spokenText, SpeechCommandFilter.empty());
+    }
+
+    public Result resolve(String spokenText, SpeechCommandFilter commandFilter) {
         // Preserve the original words for complete-name checks. A legitimate contact
         // may contain a word that is also a command or greeting (for example, "Hello Tunes").
         List<String> originalTokens = tokenize(spokenText);
@@ -127,7 +100,9 @@ public final class ContactNameMatcher {
         }
 
         // Only remove command/greeting words for the weaker partial-token fallback.
-        Set<String> candidateTokenSet = new HashSet<>(removeFilterWords(originalTokens));
+        SpeechCommandFilter safeFilter = commandFilter == null
+                ? SpeechCommandFilter.empty() : commandFilter;
+        Set<String> candidateTokenSet = new HashSet<>(safeFilter.filterTokens(spokenText));
         Map<ContactItem, Integer> scores = new HashMap<>();
         int highestScore = 0;
 
@@ -205,25 +180,13 @@ public final class ContactNameMatcher {
         return false;
     }
 
-    private static List<String> removeFilterWords(List<String> tokens) {
-        List<String> filteredTokens = new ArrayList<>();
-
-        for (String token : tokens) {
-            if (!FILTER_WORDS.contains(token)) {
-                filteredTokens.add(token);
-            }
-        }
-
-        return filteredTokens;
-    }
-
     private static List<String> tokenize(String value) {
         String normalized = Normalizer.normalize(
                         value == null ? "" : value,
                         Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "")
+                .replaceAll("(?<=\\p{IsLatin})\\p{M}+", "")
                 .toLowerCase(Locale.ROOT)
-                .replaceAll("[^\\p{L}\\p{N}]+", " ")
+                .replaceAll("[^\\p{L}\\p{M}\\p{N}]+", " ")
                 .trim();
 
         if (normalized.isEmpty()) return Collections.emptyList();

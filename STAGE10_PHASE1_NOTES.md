@@ -49,3 +49,15 @@ A full Android/Gradle build was not run. The supplied ZIP does not contain `grad
 - Removed full and partial recognition transcript writes to Logcat.
 - JUnit 4.13.2 is added as a test-only dependency; no runtime dependency or Android permission was added.
 - The 15 test methods compiled and passed using a local JVM harness with lightweight Android/JUnit stubs. The Android Gradle test task and full app build remain unverified because this source archive has no Gradle wrapper and no system Gradle is installed in the validation environment.
+
+
+## Dictionary-driven filtering integration — Milestone 4
+
+- Added `SpeechCommandFilter`, a pure-Java phrase/token filter that receives terms from the local dictionary and has no Room dependency.
+- Added `SpeechDictionaryDefaults` with starter command, greeting, and filler entries for English (`en-IN`), Hindi (`hi-IN`), and Marathi (`mr-IN`).
+- `MainActivity` seeds defaults using conflict-ignore inserts, loads enabled entries for the selected language through `SpeechDictionaryRepository`, and reloads them when the language changes.
+- Dictionary loading and database access run on a background executor. A completed search is held until dictionary loading completes; a bundled in-memory fallback is used if database access fails.
+- Removed the hardcoded command-word set from `ContactNameMatcher`. Complete contact-name/alias matching still runs against the original recognized phrase before dictionary filtering is applied to partial token matching.
+- Updated normalization to preserve Devanagari combining vowel marks while continuing to fold Latin accents.
+- Added JVM tests for multi-word phrases, token boundaries, accent handling, Devanagari, language defaults, and disabled dictionary entries.
+- The available local JVM harness passed 25 unit-test methods. Full Android Gradle build, Room instrumentation tests, and physical-device speech testing remain pending because this environment has no Gradle executable or Android SDK.

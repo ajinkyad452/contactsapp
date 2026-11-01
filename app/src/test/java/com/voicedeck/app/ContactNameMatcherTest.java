@@ -2,6 +2,8 @@ package com.voicedeck.app;
 
 import org.junit.Test;
 
+import com.voicedeck.app.speech.SpeechCommandFilter;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -17,7 +19,7 @@ public class ContactNameMatcherTest {
     public void matchesCompleteNameInsideCommandSentence() {
         ContactItem john = contact(1, "John Smith");
 
-        ContactNameMatcher.Result result = matcher(john).resolve("Please call John Smith");
+        ContactNameMatcher.Result result = matcher(john).resolve("Please call John Smith", englishFilter());
 
         assertMatch(result, john);
     }
@@ -26,7 +28,7 @@ public class ContactNameMatcherTest {
     public void preservesGreetingWordWhenItIsPartOfCompleteContactName() {
         ContactItem helloTunes = contact(1, "Hello Tunes");
 
-        ContactNameMatcher.Result result = matcher(helloTunes).resolve("Please call Hello Tunes");
+        ContactNameMatcher.Result result = matcher(helloTunes).resolve("Please call Hello Tunes", englishFilter());
 
         assertMatch(result, helloTunes);
     }
@@ -35,7 +37,7 @@ public class ContactNameMatcherTest {
     public void greetingAloneDoesNotPartiallyMatchMultiWordContact() {
         ContactItem helloTunes = contact(1, "Hello Tunes");
 
-        ContactNameMatcher.Result result = matcher(helloTunes).resolve("hello");
+        ContactNameMatcher.Result result = matcher(helloTunes).resolve("hello", englishFilter());
 
         assertNoMatch(result);
     }
@@ -44,7 +46,7 @@ public class ContactNameMatcherTest {
     public void recognizedGreetingDoesNotPartiallyMatchMultiWordContact() {
         ContactItem helloTunes = contact(1, "Hello Tunes");
 
-        ContactNameMatcher.Result result = matcher(helloTunes).resolve("hellooo");
+        ContactNameMatcher.Result result = matcher(helloTunes).resolve("hellooo", englishFilter());
 
         assertNoMatch(result);
     }
@@ -53,7 +55,7 @@ public class ContactNameMatcherTest {
     public void exactSingleWordContactCanStillBeMatchedWhenWordIsGreeting() {
         ContactItem hello = contact(1, "Hello");
 
-        ContactNameMatcher.Result result = matcher(hello).resolve("hello");
+        ContactNameMatcher.Result result = matcher(hello).resolve("hello", englishFilter());
 
         assertMatch(result, hello);
     }
@@ -63,7 +65,7 @@ public class ContactNameMatcherTest {
         ContactItem johnSmith = contact(1, "John Smith");
         ContactItem smith = contact(2, "Smith");
 
-        ContactNameMatcher.Result result = matcher(johnSmith, smith).resolve("Call John Smith");
+        ContactNameMatcher.Result result = matcher(johnSmith, smith).resolve("Call John Smith", englishFilter());
 
         assertMatch(result, johnSmith);
     }
@@ -72,7 +74,7 @@ public class ContactNameMatcherTest {
     public void supportsFirstNamePartialMatch() {
         ContactItem johnSmith = contact(1, "John Smith");
 
-        ContactNameMatcher.Result result = matcher(johnSmith).resolve("Call John");
+        ContactNameMatcher.Result result = matcher(johnSmith).resolve("Call John", englishFilter());
 
         assertMatch(result, johnSmith);
     }
@@ -81,7 +83,7 @@ public class ContactNameMatcherTest {
     public void supportsSurnamePartialMatch() {
         ContactItem johnSmith = contact(1, "John Smith");
 
-        ContactNameMatcher.Result result = matcher(johnSmith).resolve("Call Smith");
+        ContactNameMatcher.Result result = matcher(johnSmith).resolve("Call Smith", englishFilter());
 
         assertMatch(result, johnSmith);
     }
@@ -91,7 +93,7 @@ public class ContactNameMatcherTest {
         ContactItem johnSmith = contact(1, "John Smith");
         ContactItem johnDoe = contact(2, "John Doe");
 
-        ContactNameMatcher.Result result = matcher(johnSmith, johnDoe).resolve("Call John");
+        ContactNameMatcher.Result result = matcher(johnSmith, johnDoe).resolve("Call John", englishFilter());
 
         assertEquals(ContactNameMatcher.Status.MULTIPLE_MATCHES, result.getStatus());
         assertEquals(2, result.getMatches().size());
@@ -102,7 +104,7 @@ public class ContactNameMatcherTest {
         ContactItem johnSmith = contact(1, "John Smith");
         ContactItem janeSmith = contact(2, "Jane Smith");
 
-        ContactNameMatcher.Result result = matcher(johnSmith, janeSmith).resolve("Call Smith");
+        ContactNameMatcher.Result result = matcher(johnSmith, janeSmith).resolve("Call Smith", englishFilter());
 
         assertEquals(ContactNameMatcher.Status.MULTIPLE_MATCHES, result.getStatus());
         assertEquals(2, result.getMatches().size());
@@ -112,7 +114,7 @@ public class ContactNameMatcherTest {
     public void commandOnlyInputReturnsNoMatch() {
         ContactItem john = contact(1, "John Smith");
 
-        ContactNameMatcher.Result result = matcher(john).resolve("Please call my contact");
+        ContactNameMatcher.Result result = matcher(john).resolve("Please call my contact", englishFilter());
 
         assertNoMatch(result);
     }
@@ -122,8 +124,8 @@ public class ContactNameMatcherTest {
         ContactItem john = contact(1, "John Smith");
         ContactNameMatcher matcher = matcher(john);
 
-        assertNoMatch(matcher.resolve("  !!!  "));
-        assertNoMatch(matcher.resolve(null));
+        assertNoMatch(matcher.resolve("  !!!  ", englishFilter()));
+        assertNoMatch(matcher.resolve(null, englishFilter()));
     }
 
     @Test
@@ -134,7 +136,7 @@ public class ContactNameMatcherTest {
         ContactNameMatcher matcher = new ContactNameMatcher(
                 Collections.singletonList(john), aliases);
 
-        ContactNameMatcher.Result result = matcher.resolve("Please call Johnny Boy");
+        ContactNameMatcher.Result result = matcher.resolve("Please call Johnny Boy", englishFilter());
 
         assertMatch(result, john);
     }
@@ -143,18 +145,38 @@ public class ContactNameMatcherTest {
     public void normalizesAccentsAndPunctuation() {
         ContactItem jose = contact(1, "José O'Neil");
 
-        ContactNameMatcher.Result result = matcher(jose).resolve("Call Jose O Neil!");
+        ContactNameMatcher.Result result = matcher(jose).resolve("Call Jose O Neil!", englishFilter());
 
         assertMatch(result, jose);
+    }
+
+    @Test
+    public void matchesHindiContactNameWithoutStrippingDevanagariVowelMarks() {
+        ContactItem rahul = contact(1, "राहुल शर्मा");
+        SpeechCommandFilter hindiFilter = new SpeechCommandFilter(
+                Arrays.asList("कॉल", "फोन", "कृपया", "नमस्ते"));
+
+        ContactNameMatcher.Result result = matcher(rahul).resolve("कृपया कॉल राहुल शर्मा", hindiFilter);
+
+        assertMatch(result, rahul);
     }
 
     @Test
     public void exactContactNameMadeOfFilterWordsIsStillMatchable() {
         ContactItem callMe = contact(1, "Call Me");
 
-        ContactNameMatcher.Result result = matcher(callMe).resolve("Call Me");
+        ContactNameMatcher.Result result = matcher(callMe).resolve("Call Me", englishFilter());
 
         assertMatch(result, callMe);
+    }
+
+    private static SpeechCommandFilter englishFilter() {
+        return new SpeechCommandFilter(Arrays.asList(
+                "call", "dial", "phone", "contact", "number", "mobile",
+                "find", "search", "show", "open", "get", "hey", "hi", "hello",
+                "good morning", "good afternoon", "good evening",
+                "please", "the", "a", "an", "my", "me", "to", "for"
+        ));
     }
 
     private static ContactNameMatcher matcher(ContactItem... contacts) {

@@ -8,7 +8,9 @@ This roadmap separates the current implemented baseline from planned work. A lis
 - Android `SpeechRecognizer` integration with English (`en-IN`), Marathi (`mr-IN`) and Hindi (`hi-IN`) language options.
 - Contacts loaded from Android's Contacts Provider.
 - `ContactNameMatcher` performs local phrase and token matching and returns `MATCH_FOUND`, `MULTIPLE_MATCHES`, or `NO_MATCH`.
-- The matcher currently removes a hardcoded set of command words before matching.
+- `ContactNameMatcher` checks complete contact-name/alias phrases before applying a supplied speech filter to weaker partial-token matching.
+- The Room-backed `speech_dictionary` is seeded with starter command, greeting, and filler terms for English (`en-IN`), Hindi (`hi-IN`), and Marathi (`mr-IN`).
+- `SpeechCommandFilter` is a pure-Java boundary; it receives enabled terms from the repository and has no direct Room dependency.
 - Optional alias input is supported by the matcher constructor, but alias management and persistence are not implemented.
 - Voice-first contact card, Call / WhatsApp actions, Previous / Next navigation, manual search, and existing permission recovery remain the frozen product baseline.
 
@@ -55,13 +57,37 @@ This roadmap separates the current implemented baseline from planned work. A lis
 
 ### Milestone 4 — Integrate dictionary-driven speech filtering
 
-**Status:** Planned
+**Status:** Implemented in source; Android build and device validation pending
 
-- [ ] Seed or otherwise provide the initial local dictionary for supported languages.
-- [ ] Expose active dictionary entries through `SpeechDictionaryRepository`.
-- [ ] Add a `SpeechCommandFilter` / speech-processing boundary that does not depend directly on Room.
-- [ ] Replace the hardcoded command-word set only after dictionary loading, empty-dictionary behavior, and fallback behavior are tested.
-- [ ] Re-run matching regression tests, including the “Hello Tunes” safeguard.
+- [x] Seed the local Room dictionary with starter English, Hindi, and Marathi commands, greetings, and filler terms.
+- [x] Expose enabled language-specific entries through `SpeechDictionaryRepository` and load them asynchronously off the main thread.
+- [x] Add `SpeechCommandFilter` as a pure-Java boundary with no Room or Android dependency.
+- [x] Replace the matcher's hardcoded command-word set with dictionary terms supplied by `MainActivity`.
+- [x] Preserve existing dictionary edits and disabled entries through idempotent `INSERT OR IGNORE` seeding.
+- [x] Provide a bundled in-memory fallback if local database initialization/loading fails.
+- [x] Queue a completed search while the dictionary is loading; process it after the dictionary is ready.
+- [x] Reload enabled terms when the user changes the speech language.
+- [x] Preserve full-name-before-filter matching, phrase filtering, and multilingual Devanagari vowel marks.
+- [x] Add JVM tests for filter phrases, token boundaries, accents, Devanagari, language defaults, and disabled entries.
+- [ ] Run `:app:testDebugUnitTest`, `:app:assembleDebug`, and `:app:connectedDebugAndroidTest` on the development machine.
+- [ ] Verify English, Hindi, and Marathi speech on physical devices.
+
+### Milestone 5 — Manage local speech vocabulary
+
+**Status:** Implemented in source; Room migration, Android build, and physical-device validation pending
+
+- [x] Add a vocabulary manager entry in Settings without changing the frozen contact-card UI.
+- [x] Browse entries by English, Hindi, or Marathi dictionary language, including disabled entries.
+- [x] Enable/disable ordinary default and custom terms; reload the active speech filter after changes.
+- [x] Add custom words and short phrases with category and duplicate validation.
+- [x] Remove custom entries only; bundled defaults cannot be deleted.
+- [x] Protect essential `call` / `कॉल` commands from being disabled.
+- [x] Restore bundled defaults for a language without deleting custom vocabulary.
+- [x] Add Room 1-to-2 migration for default/protected metadata; preserve existing database rows.
+- [x] Add DAO tests for protected commands, custom deletion, and restoring defaults.
+- [ ] Run `:app:assembleDebug`, `:app:testDebugUnitTest`, and `:app:connectedAndroidTest`.
+- [ ] Upgrade an existing v1 database on-device and verify all 56 existing terms survive migration.
+- [ ] Verify adding, toggling, removing, and restoring vocabulary on a physical device.
 
 ## Later feature areas
 

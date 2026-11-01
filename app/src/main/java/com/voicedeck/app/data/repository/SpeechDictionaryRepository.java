@@ -33,6 +33,11 @@ public final class SpeechDictionaryRepository {
         execute(() -> dao.getEnabledEntries(languageTag), callback);
     }
 
+    public void getEntriesForLanguage(String languageTag,
+                                      ResultCallback<List<SpeechDictionaryEntry>> callback) {
+        execute(() -> dao.getEntriesForLanguage(languageTag), callback);
+    }
+
     public void getAllEnabledEntries(ResultCallback<List<SpeechDictionaryEntry>> callback) {
         execute(dao::getAllEnabledEntries, callback);
     }
@@ -41,12 +46,26 @@ public final class SpeechDictionaryRepository {
         execute(() -> dao.insert(entry), callback);
     }
 
-    public void update(SpeechDictionaryEntry entry, ResultCallback<Integer> callback) {
-        execute(() -> dao.update(entry), callback);
+    public void insertAll(List<SpeechDictionaryEntry> entries, ResultCallback<List<Long>> callback) {
+        execute(() -> dao.insertAll(entries), callback);
     }
 
-    public void delete(SpeechDictionaryEntry entry, ResultCallback<Integer> callback) {
-        execute(() -> dao.delete(entry), callback);
+    public void setEnabled(long id, boolean enabled, ResultCallback<Integer> callback) {
+        execute(() -> dao.setEnabled(id, enabled), callback);
+    }
+
+    public void deleteCustomEntry(long id, ResultCallback<Integer> callback) {
+        execute(() -> dao.deleteCustomEntry(id), callback);
+    }
+
+    /** Re-seeds missing bundled terms and re-enables defaults for one language. */
+    public void restoreDefaults(String languageTag,
+                                List<SpeechDictionaryEntry> defaults,
+                                ResultCallback<Integer> callback) {
+        execute(() -> {
+            dao.insertAll(defaults);
+            return dao.enableDefaultEntries(languageTag);
+        }, callback);
     }
 
     private <T> void execute(Callable<T> operation, ResultCallback<T> callback) {

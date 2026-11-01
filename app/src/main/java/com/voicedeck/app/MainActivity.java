@@ -28,6 +28,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.FrameLayout;
@@ -41,6 +42,12 @@ import android.widget.Toast;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
+
+import com.voicedeck.app.data.local.VoiceDeckDatabase;
+import com.voicedeck.app.data.local.entity.SpeechDictionaryEntry;
+import com.voicedeck.app.data.repository.SpeechDictionaryRepository;
+import com.voicedeck.app.speech.SpeechCommandFilter;
+import com.voicedeck.app.speech.SpeechDictionaryDefaults;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -77,6 +84,13 @@ public class MainActivity extends Activity {
     private String language = "en-IN";
     private final List<ContactItem> contacts = new ArrayList<>();
     private ContactNameMatcher contactNameMatcher;
+    private SpeechDictionaryRepository speechDictionaryRepository;
+    private final ExecutorService databaseExecutor = Executors.newSingleThreadExecutor();
+    private SpeechCommandFilter speechCommandFilter = SpeechCommandFilter.empty();
+    private boolean speechDictionaryReady;
+    private boolean showingDictionaryManager;
+    private String dictionaryManagerLanguage = "en-IN";
+    private String pendingContactQuery;
     private List<ContactItem> currentMatches = new ArrayList<>();
     private int currentIndex = 0;
     private boolean showingBack = false;
@@ -94,6 +108,7 @@ public class MainActivity extends Activity {
         language = getPreferences(MODE_PRIVATE).getString("language", "en-IN");
         buildBase();
         showListeningPrompt(false);
+        initializeSpeechDictionary();
         ensurePermissionsAndStart();
     }
 
@@ -527,14 +542,102 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void initializeSpeechDictionary() {
+        speechDictionaryReady = false;
+        speechDictionaryRepository = new SpeechDictionaryRepository(
+                VoiceDeckDatabase.getInstance(this),
+                databaseExecutor,
+                command -> runOnUiThread(command)
+        );
+
+        // INSERT OR IGNORE makes bundled defaults idempotent. Existing user edits,
+        // including disabled entries, are preserved by the unique dictionary index.
+        speechDictionaryRepository.insertAll(
+                SpeechDictionaryDefaults.createEntries(),
+                new SpeechDictionaryRepository.ResultCallback<List<Long>>() {
+                    @Override public void onSuccess(List<Long> ignored) {
+                        if (isFinishing() || isDestroyed()) return;
+                        loadSpeechDictionary();
+                    }
+
+                    @Override public void onError(Exception error) {
+                        if (isFinishing() || isDestroyed()) return;
+                        applyBundledDictionaryFallback(language);
+                    }
+                }
+        );
+    }
+
+    private void loadSpeechDictionary() {
+        if (speechDictionaryRepository == null) {
+            initializeSpeechDictionary();
+            return;
+        }
+
+        final String requestedLanguage = language;
+        speechDictionaryReady = false;
+        speechDictionaryRepository.getEnabledEntries(
+                requestedLanguage,
+                new SpeechDictionaryRepository.ResultCallback<List<SpeechDictionaryEntry>>() {
+                    @Override public void onSuccess(List<SpeechDictionaryEntry> entries) {
+                        if (isFinishing() || isDestroyed()) return;
+                        if (!requestedLanguage.equals(language)) {
+                            loadSpeechDictionary();
+                            return;
+                        }
+                        List<String> terms = SpeechDictionaryDefaults.termsForLanguage(
+                                entries, requestedLanguage);
+                        speechCommandFilter = new SpeechCommandFilter(terms);
+                        speechDictionaryReady = true;
+                        processPendingContactQuery();
+                    }
+
+                    @Override public void onError(Exception error) {
+                        if (isFinishing() || isDestroyed()) return;
+                        applyBundledDictionaryFallback(requestedLanguage);
+                    }
+                }
+        );
+    }
+
+    private void applyBundledDictionaryFallback(String requestedLanguage) {
+        if (!requestedLanguage.equals(language)) {
+            loadSpeechDictionary();
+            return;
+        }
+        List<String> fallbackTerms = SpeechDictionaryDefaults.termsForLanguage(
+                SpeechDictionaryDefaults.createEntries(), requestedLanguage);
+        speechCommandFilter = new SpeechCommandFilter(fallbackTerms);
+        speechDictionaryReady = true;
+        processPendingContactQuery();
+    }
+
+    private void processPendingContactQuery() {
+        if (pendingContactQuery == null) return;
+        String query = pendingContactQuery;
+        pendingContactQuery = null;
+        findContactNow(query);
+    }
+
     private void findContact(String spoken) {
+        if (!speechDictionaryReady) {
+            // Speech recognition can finish before the local Room dictionary loads.
+            // Hold only the latest query and resume it when loading completes.
+            pendingContactQuery = spoken;
+            statusText.setText("Preparing local voice dictionary…");
+            return;
+        }
+        findContactNow(spoken);
+    }
+
+    private void findContactNow(String spoken) {
         if (contacts.isEmpty()) loadContacts();
 
         if (contactNameMatcher == null) {
             contactNameMatcher = new ContactNameMatcher(contacts, Collections.emptyMap());
         }
 
-        ContactNameMatcher.Result result = contactNameMatcher.resolve(spoken);
+        ContactNameMatcher.Result result = contactNameMatcher.resolve(spoken, speechCommandFilter);
 
         if (result.getStatus() == ContactNameMatcher.Status.NO_MATCH) {
             showListeningPrompt(false);
@@ -1023,6 +1126,7 @@ public class MainActivity extends Activity {
     }
 
     private void showSettings() {
+        showingDictionaryManager = false;
         content.removeAllViews();
         content.setGravity(Gravity.TOP);
         content.setPadding(dp(2), dp(12), dp(2), dp(18));
@@ -1049,6 +1153,29 @@ public class MainActivity extends Activity {
         changeParams.topMargin = dp(14); languageCard.addView(changeLanguage, changeParams);
         changeLanguage.setOnClickListener(v -> showLanguageChooser());
         content.addView(languageCard, new LinearLayout.LayoutParams(-1, -2));
+
+        LinearLayout dictionaryCard = new LinearLayout(this);
+        dictionaryCard.setOrientation(LinearLayout.VERTICAL);
+        dictionaryCard.setPadding(dp(18), dp(18), dp(18), dp(18));
+        dictionaryCard.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 22));
+        LinearLayout.LayoutParams dictionaryParams = new LinearLayout.LayoutParams(-1, -2);
+        dictionaryParams.topMargin = dp(14);
+        content.addView(dictionaryCard, dictionaryParams);
+        dictionaryCard.addView(text("Speech dictionary", 19, true));
+        TextView dictionaryHint = text(
+                "Manage words and phrases VoiceDeck removes before matching contact names.",
+                14, false);
+        dictionaryHint.setTextColor(COLOR_SECONDARY);
+        LinearLayout.LayoutParams dictionaryHintParams = new LinearLayout.LayoutParams(-1, -2);
+        dictionaryHintParams.topMargin = dp(6);
+        dictionaryCard.addView(dictionaryHint, dictionaryHintParams);
+        Button manageDictionary = new Button(this);
+        manageDictionary.setText("Manage vocabulary");
+        styleActionButton(manageDictionary, COLOR_SAGE, COLOR_PRIMARY, COLOR_SAGE, 54);
+        LinearLayout.LayoutParams manageDictionaryParams = new LinearLayout.LayoutParams(-1, dp(56));
+        manageDictionaryParams.topMargin = dp(14);
+        dictionaryCard.addView(manageDictionary, manageDictionaryParams);
+        manageDictionary.setOnClickListener(v -> showDictionaryManager(language));
 
         LinearLayout permissionCard = new LinearLayout(this);
         permissionCard.setOrientation(LinearLayout.VERTICAL);
@@ -1095,6 +1222,333 @@ public class MainActivity extends Activity {
         statusText.setText("Settings. Choose your voice search language and review permissions.");
     }
 
+    private void showDictionaryManager(String selectedLanguage) {
+        showingDictionaryManager = true;
+        dictionaryManagerLanguage = selectedLanguage;
+        content.removeAllViews();
+        content.setGravity(Gravity.TOP);
+        content.setPadding(dp(2), dp(12), dp(2), dp(18));
+
+        TextView heading = centeredText("SPEECH DICTIONARY", 13, true, COLOR_SECONDARY);
+        heading.setLetterSpacing(0.12f);
+        content.addView(heading, new LinearLayout.LayoutParams(-1, dp(34)));
+        TextView title = centeredText("Manage vocabulary", 26, true, COLOR_TEXT);
+        content.addView(title, new LinearLayout.LayoutParams(-1, -2));
+        TextView description = text(
+                "Enable or disable words, add phrases you use, or restore the original words. " +
+                        "Essential call commands stay enabled. Changes stay on this device.", 14, false);
+        description.setTextColor(COLOR_SECONDARY);
+        description.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams descriptionParams = new LinearLayout.LayoutParams(-1, -2);
+        descriptionParams.setMargins(dp(8), dp(8), dp(8), dp(14));
+        content.addView(description, descriptionParams);
+
+        LinearLayout languageCard = new LinearLayout(this);
+        languageCard.setGravity(Gravity.CENTER_VERTICAL);
+        languageCard.setPadding(dp(14), dp(8), dp(10), dp(8));
+        languageCard.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 18));
+        TextView languageLabel = text("Dictionary language", 16, true);
+        languageCard.addView(languageLabel, new LinearLayout.LayoutParams(0, -2, 1));
+        Button languageButton = new Button(this);
+        languageButton.setText(dictionaryLanguageName(dictionaryManagerLanguage) + " ▾");
+        styleActionButton(languageButton, COLOR_SAGE, COLOR_PRIMARY, COLOR_SAGE, 44);
+        languageCard.addView(languageButton);
+        languageButton.setOnClickListener(v -> showDictionaryLanguageChooser());
+        content.addView(languageCard, new LinearLayout.LayoutParams(-1, -2));
+
+        LinearLayout actionRow = new LinearLayout(this);
+        actionRow.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(-1, -2);
+        actionParams.topMargin = dp(12);
+        content.addView(actionRow, actionParams);
+        Button add = new Button(this);
+        add.setText("Add word or phrase");
+        styleActionButton(add, COLOR_PRIMARY, Color.WHITE, COLOR_PRIMARY, 50);
+        actionRow.addView(add, new LinearLayout.LayoutParams(-1, dp(52)));
+        add.setOnClickListener(v -> showAddDictionaryEntryDialog());
+        Button restore = new Button(this);
+        restore.setText("Restore defaults");
+        styleActionButton(restore, COLOR_SURFACE, COLOR_PRIMARY, COLOR_BORDER, 50);
+        LinearLayout.LayoutParams restoreParams = new LinearLayout.LayoutParams(-1, dp(52));
+        restoreParams.topMargin = dp(8);
+        actionRow.addView(restore, restoreParams);
+        restore.setOnClickListener(v -> confirmRestoreDictionaryDefaults());
+
+        LinearLayout listCard = new LinearLayout(this);
+        listCard.setOrientation(LinearLayout.VERTICAL);
+        listCard.setPadding(dp(14), dp(14), dp(14), dp(14));
+        listCard.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 20));
+        LinearLayout.LayoutParams listCardParams = new LinearLayout.LayoutParams(-1, -2);
+        listCardParams.topMargin = dp(14);
+        content.addView(listCard, listCardParams);
+        listCard.addView(text("Words and phrases", 18, true));
+        TextView loading = text("Loading local dictionary…", 14, false);
+        loading.setTextColor(COLOR_SECONDARY);
+        LinearLayout.LayoutParams loadingParams = new LinearLayout.LayoutParams(-1, -2);
+        loadingParams.topMargin = dp(10);
+        listCard.addView(loading, loadingParams);
+
+        Button back = new Button(this);
+        back.setText("Back to settings");
+        styleActionButton(back, COLOR_SURFACE, COLOR_PRIMARY, COLOR_BORDER, 54);
+        LinearLayout.LayoutParams backParams = new LinearLayout.LayoutParams(-1, dp(56));
+        backParams.topMargin = dp(16);
+        content.addView(back, backParams);
+        back.setOnClickListener(v -> showSettings());
+
+        if (speechDictionaryRepository == null) {
+            initializeSpeechDictionary();
+            loading.setText("Preparing local dictionary. Please reopen this screen in a moment.");
+            return;
+        }
+        speechDictionaryRepository.getEntriesForLanguage(
+                dictionaryManagerLanguage,
+                new SpeechDictionaryRepository.ResultCallback<List<SpeechDictionaryEntry>>() {
+                    @Override public void onSuccess(List<SpeechDictionaryEntry> entries) {
+                        if (isFinishing() || isDestroyed() || !showingDictionaryManager
+                                || !dictionaryManagerLanguage.equals(selectedLanguage)) return;
+                        listCard.removeView(loading);
+                        if (entries.isEmpty()) {
+                            TextView empty = text("No entries yet. Add a word or restore defaults.", 14, false);
+                            empty.setTextColor(COLOR_SECONDARY);
+                            listCard.addView(empty);
+                            return;
+                        }
+                        addDictionaryEntryRows(listCard, entries);
+                    }
+
+                    @Override public void onError(Exception error) {
+                        if (isFinishing() || isDestroyed() || !showingDictionaryManager) return;
+                        loading.setText("Couldn't load the local dictionary. Please try again.");
+                    }
+                }
+        );
+    }
+
+    private void addDictionaryEntryRows(LinearLayout parent, List<SpeechDictionaryEntry> entries) {
+        String previousCategory = null;
+        for (SpeechDictionaryEntry entry : entries) {
+            if (!entry.category.equals(previousCategory)) {
+                TextView category = text(dictionaryCategoryName(entry.category), 13, true);
+                category.setTextColor(COLOR_SECONDARY);
+                category.setPadding(0, dp(14), 0, dp(4));
+                parent.addView(category);
+                previousCategory = entry.category;
+            }
+
+            LinearLayout row = new LinearLayout(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(0, dp(5), 0, dp(5));
+            CheckBox enabled = new CheckBox(this);
+            enabled.setText(entry.term + (entry.isDefault ? "  ·  Default" : "  ·  Custom"));
+            enabled.setTextSize(15);
+            enabled.setTextColor(COLOR_TEXT);
+            enabled.setButtonTintList(android.content.res.ColorStateList.valueOf(COLOR_PRIMARY));
+            enabled.setChecked(entry.enabled);
+            enabled.setEnabled(!entry.isProtected);
+            row.addView(enabled, new LinearLayout.LayoutParams(0, -2, 1));
+            if (entry.isProtected) {
+                TextView protectedLabel = text("Essential", 11, true);
+                protectedLabel.setTextColor(COLOR_PRIMARY);
+                row.addView(protectedLabel);
+            } else if (!entry.isDefault) {
+                Button remove = new Button(this);
+                remove.setText("Remove");
+                styleActionButton(remove, COLOR_SURFACE, COLOR_SECONDARY, COLOR_BORDER, 36);
+                remove.setTextSize(12);
+                row.addView(remove);
+                remove.setOnClickListener(v -> confirmDeleteCustomEntry(entry));
+            }
+            parent.addView(row);
+            View divider = new View(this);
+            divider.setBackgroundColor(COLOR_BORDER);
+            parent.addView(divider, new LinearLayout.LayoutParams(-1, dp(1)));
+            enabled.setOnCheckedChangeListener((button, checked) -> {
+                if (entry.enabled == checked) return;
+                speechDictionaryRepository.setEnabled(entry.id, checked,
+                        new SpeechDictionaryRepository.ResultCallback<Integer>() {
+                            @Override public void onSuccess(Integer changed) {
+                                if (!showingDictionaryManager || isFinishing() || isDestroyed()) return;
+                                if (changed == null || changed == 0) {
+                                    Toast.makeText(MainActivity.this,
+                                            "This essential command cannot be disabled.",
+                                            Toast.LENGTH_SHORT).show();
+                                }
+                                if (entry.languageTag.equals(language)) loadSpeechDictionary();
+                                showDictionaryManager(dictionaryManagerLanguage);
+                            }
+
+                            @Override public void onError(Exception error) {
+                                if (!showingDictionaryManager || isFinishing() || isDestroyed()) return;
+                                Toast.makeText(MainActivity.this,
+                                        "Couldn't update this dictionary entry.", Toast.LENGTH_LONG).show();
+                                showDictionaryManager(dictionaryManagerLanguage);
+                            }
+                        });
+            });
+        }
+    }
+
+    private void showDictionaryLanguageChooser() {
+        String[] labels = {"English", "हिन्दी", "मराठी"};
+        String[] values = {"en-IN", "hi-IN", "mr-IN"};
+        int selected = 0;
+        for (int i = 0; i < values.length; i++) {
+            if (values[i].equals(dictionaryManagerLanguage)) selected = i;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("Dictionary language")
+                .setSingleChoiceItems(labels, selected, (dialog, which) -> {
+                    dialog.dismiss();
+                    showDictionaryManager(values[which]);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showAddDictionaryEntryDialog() {
+        LinearLayout panel = dialogPanel();
+        panel.addView(dialogTitle("Add vocabulary"));
+        TextView hint = text("Enter a word or short phrase in " +
+                dictionaryLanguageName(dictionaryManagerLanguage) + ".", 14, false);
+        hint.setTextColor(COLOR_SECONDARY);
+        panel.addView(hint);
+        EditText termInput = new EditText(this);
+        termInput.setSingleLine(true);
+        termInput.setTextSize(17);
+        termInput.setHint("For example: please call");
+        termInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(-1, dp(56));
+        inputParams.topMargin = dp(10);
+        panel.addView(termInput, inputParams);
+        panel.addView(text("Category", 15, true));
+        RadioGroup categories = new RadioGroup(this);
+        categories.setOrientation(RadioGroup.VERTICAL);
+        String[] categoryLabels = {"Command", "Greeting", "Filler"};
+        String[] categoryValues = {SpeechDictionaryEntry.CATEGORY_COMMAND,
+                SpeechDictionaryEntry.CATEGORY_GREETING, SpeechDictionaryEntry.CATEGORY_FILLER};
+        for (int i = 0; i < categoryLabels.length; i++) {
+            RadioButton option = new RadioButton(this);
+            option.setText(categoryLabels[i]);
+            option.setId(i + 1);
+            option.setTextColor(COLOR_TEXT);
+            option.setButtonTintList(android.content.res.ColorStateList.valueOf(COLOR_PRIMARY));
+            option.setChecked(i == 0);
+            categories.addView(option);
+        }
+        panel.addView(categories);
+        AlertDialog dialog = new AlertDialog.Builder(this).setView(panel)
+                .setPositiveButton("Add", null).setNegativeButton("Cancel", null).create();
+        dialog.setOnShowListener(ignored -> {
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setBackgroundDrawable(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 24));
+            }
+            Button addButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            addButton.setTextColor(COLOR_PRIMARY);
+            addButton.setOnClickListener(v -> {
+                String term = termInput.getText().toString().trim();
+                String normalized = SpeechCommandFilter.normalizeTerm(term);
+                if (normalized.isEmpty()) {
+                    termInput.setError("Enter a word or phrase.");
+                    return;
+                }
+                if (term.length() > 80 || normalized.split("\\s+").length > 8) {
+                    termInput.setError("Use 80 characters or fewer and no more than 8 words.");
+                    return;
+                }
+                int selectedCategory = categories.getCheckedRadioButtonId() - 1;
+                if (selectedCategory < 0 || selectedCategory >= categoryValues.length) selectedCategory = 0;
+                String category = categoryValues[selectedCategory];
+                SpeechDictionaryEntry entry = new SpeechDictionaryEntry(term, normalized,
+                        dictionaryManagerLanguage, category, true, false, false);
+                speechDictionaryRepository.insert(entry,
+                        new SpeechDictionaryRepository.ResultCallback<Long>() {
+                            @Override public void onSuccess(Long id) {
+                                if (id == null || id < 0) {
+                                    Toast.makeText(MainActivity.this,
+                                            "That word or phrase already exists in this category.",
+                                            Toast.LENGTH_LONG).show();
+                                    return;
+                                }
+                                dialog.dismiss();
+                                Toast.makeText(MainActivity.this, "Vocabulary added.", Toast.LENGTH_SHORT).show();
+                                if (dictionaryManagerLanguage.equals(language)) loadSpeechDictionary();
+                                showDictionaryManager(dictionaryManagerLanguage);
+                            }
+
+                            @Override public void onError(Exception error) {
+                                Toast.makeText(MainActivity.this,
+                                        "Couldn't save this vocabulary entry.", Toast.LENGTH_LONG).show();
+                            }
+                        });
+            });
+        });
+        dialog.show();
+    }
+
+    private void confirmDeleteCustomEntry(SpeechDictionaryEntry entry) {
+        new AlertDialog.Builder(this)
+                .setTitle("Remove custom word?")
+                .setMessage("Remove “" + entry.term + "” from this device's speech dictionary?")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Remove", (dialog, which) ->
+                        speechDictionaryRepository.deleteCustomEntry(entry.id,
+                                new SpeechDictionaryRepository.ResultCallback<Integer>() {
+                                    @Override public void onSuccess(Integer deleted) {
+                                        Toast.makeText(MainActivity.this,
+                                                deleted != null && deleted > 0 ? "Custom word removed." :
+                                                        "Default vocabulary cannot be removed.",
+                                                Toast.LENGTH_SHORT).show();
+                                        if (dictionaryManagerLanguage.equals(language)) loadSpeechDictionary();
+                                        showDictionaryManager(dictionaryManagerLanguage);
+                                    }
+
+                                    @Override public void onError(Exception error) {
+                                        Toast.makeText(MainActivity.this,
+                                                "Couldn't remove this word.", Toast.LENGTH_LONG).show();
+                                    }
+                                }))
+                .show();
+    }
+
+    private void confirmRestoreDictionaryDefaults() {
+        new AlertDialog.Builder(this)
+                .setTitle("Restore default vocabulary?")
+                .setMessage("This re-enables VoiceDeck's original words for " +
+                        dictionaryLanguageName(dictionaryManagerLanguage) +
+                        ". Your custom words will be kept.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Restore", (dialog, which) ->
+                        speechDictionaryRepository.restoreDefaults(dictionaryManagerLanguage,
+                                SpeechDictionaryDefaults.createEntries(),
+                                new SpeechDictionaryRepository.ResultCallback<Integer>() {
+                                    @Override public void onSuccess(Integer restored) {
+                                        Toast.makeText(MainActivity.this, "Default vocabulary restored.",
+                                                Toast.LENGTH_SHORT).show();
+                                        if (dictionaryManagerLanguage.equals(language)) loadSpeechDictionary();
+                                        showDictionaryManager(dictionaryManagerLanguage);
+                                    }
+
+                                    @Override public void onError(Exception error) {
+                                        Toast.makeText(MainActivity.this,
+                                                "Couldn't restore default vocabulary.", Toast.LENGTH_LONG).show();
+                                    }
+                                }))
+                .show();
+    }
+
+    private String dictionaryLanguageName(String languageTag) {
+        if ("hi-IN".equals(languageTag)) return "हिन्दी";
+        if ("mr-IN".equals(languageTag)) return "मराठी";
+        return "English";
+    }
+
+    private String dictionaryCategoryName(String category) {
+        if (SpeechDictionaryEntry.CATEGORY_GREETING.equals(category)) return "GREETINGS";
+        if (SpeechDictionaryEntry.CATEGORY_FILLER.equals(category)) return "FILLER WORDS";
+        return "COMMANDS";
+    }
+
     private void openLegalPage(String url) {
         try {
             startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
@@ -1134,6 +1588,7 @@ public class MainActivity extends Activity {
             final String selected = values[i];
             option.setOnClickListener(v -> {
                 language = selected; getPreferences(MODE_PRIVATE).edit().putString("language", language).apply();
+                loadSpeechDictionary();
                 showSettings();
             });
             group.addView(option, new RadioGroup.LayoutParams(-1, dp(58)));
@@ -1148,6 +1603,10 @@ public class MainActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
+        if (showingDictionaryManager) {
+            showSettings();
+            return;
+        }
         if (showingBack && !currentMatches.isEmpty()) {
             showCard(false);
             return;
@@ -1161,6 +1620,7 @@ public class MainActivity extends Activity {
             speechRecognizer = null;
         }
         imageExecutor.shutdownNow();
+        databaseExecutor.shutdownNow();
         super.onDestroy();
     }
 }

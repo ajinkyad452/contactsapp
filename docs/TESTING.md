@@ -14,7 +14,7 @@ Run the contact-matching regression suite from the project root:
 ./gradlew :app:testDebugUnitTest
 ```
 
-The suite is in `app/src/test/java/com/voicedeck/app/ContactNameMatcherTest.java` and covers complete-name-before-filtering behavior, greeting collisions, partial matches, ambiguity, aliases, empty input, and normalization.
+The JVM suites are in `app/src/test/java/com/voicedeck/app/` and cover complete-name-before-filtering behavior, greeting collisions, partial matches, ambiguity, aliases, phrase/token filtering, English/Hindi/Marathi dictionary defaults, disabled entries, empty input, and Latin/Devanagari normalization.
 
 ## Room database instrumentation tests
 Run on an emulator or connected Android device:
@@ -30,7 +30,9 @@ Run on an emulator or connected Android device:
 - [ ] Contacts permission granted; contacts load.
 - [ ] Contacts permission denied; app remains usable and explains the limitation.
 - [ ] Start voice search and grant microphone permission.
-- [ ] English (`en-IN`) recognition.
+- [ ] English (`en-IN`) recognition and dictionary filtering.
+- [ ] Hindi (`hi-IN`) recognition and dictionary filtering.
+- [ ] Marathi (`mr-IN`) recognition and dictionary filtering.
 - [ ] Marathi (`mr-IN`) recognition.
 - [ ] Hindi (`hi-IN`) recognition.
 - [ ] Silence, timeout, and speech-service error messages.
@@ -57,3 +59,8 @@ Test VoiceDeck's microphone permission separately from the configured recognitio
 - [ ] No background microphone capture.
 - [ ] No contact data is sent to a VoiceDeck server.
 - [ ] Permission denial does not cause a crash.
+
+
+## Milestone 5 — Dictionary management checks
+
+On a device with a v1 VoiceDeck database, install the updated build over the existing app (do not uninstall) and verify the Room 1-to-2 migration preserves all existing dictionary rows. In Settings > Manage vocabulary, verify each supported language can be selected; ordinary terms can be enabled/disabled; essential `call` / `कॉल` entries remain enabled; custom terms can be added and removed; duplicate terms in the same language/category are rejected; and Restore defaults re-enables bundled terms without removing custom terms. Confirm changes to the currently selected recognition language affect the next voice search.
