@@ -44,3 +44,12 @@ This file tracks app-code versions and project-level changes. Device-specific fi
 - Protected essential built-in `call` / `कॉल` commands from accidental disabling and prevented deletion of bundled defaults.
 - Added restore-defaults behavior that preserves custom entries.
 - Added a non-destructive Room migration from database version 1 to 2 for default/protected metadata.
+
+## Unreleased — Milestone 6A: contact alias storage
+
+- Add the `contact_aliases` Room entity, DAO, and asynchronous repository.
+- Store aliases against Android Contacts Provider contact IDs; do not duplicate contact records.
+- Support multiple aliases per contact and allow the same alias to belong to multiple contacts so matching can report ambiguity rather than choosing arbitrarily.
+- Scope alias uniqueness by contact ID, normalized alias, and language tag; the same normalized alias may be used by different contacts or in different recognition languages.
+- Add a non-destructive Room migration from database version 2 to 3. Existing speech dictionary rows and user settings are untouched.
+- Add instrumented DAO tests for multiple aliases, duplicate handling, language scoping, ambiguity, deletion, and migration preservation.

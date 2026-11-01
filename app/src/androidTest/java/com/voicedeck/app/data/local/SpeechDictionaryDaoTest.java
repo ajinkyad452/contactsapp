@@ -70,7 +70,7 @@ public class SpeechDictionaryDaoTest {
 
         VoiceDeckDatabase migrated = androidx.room.Room.databaseBuilder(
                 context, VoiceDeckDatabase.class, databaseName)
-                .addMigrations(VoiceDeckDatabase.MIGRATION_1_2)
+                .addMigrations(VoiceDeckDatabase.MIGRATION_1_2, VoiceDeckDatabase.MIGRATION_2_3)
                 .allowMainThreadQueries()
                 .build();
         try {

@@ -61,3 +61,19 @@ A full Android/Gradle build was not run. The supplied ZIP does not contain `grad
 - Updated normalization to preserve Devanagari combining vowel marks while continuing to fold Latin accents.
 - Added JVM tests for multi-word phrases, token boundaries, accent handling, Devanagari, language defaults, and disabled dictionary entries.
 - The available local JVM harness passed 25 unit-test methods. Full Android Gradle build, Room instrumentation tests, and physical-device speech testing remain pending because this environment has no Gradle executable or Android SDK.
+
+## Milestone 6A — local alias persistence foundation
+
+- Added `ContactAlias` as a separate Room entity. Each row stores the Android Contacts Provider `contactId`, display alias, normalized alias, BCP-47 language tag, and creation timestamp.
+- Added `ContactAliasDao` and `ContactAliasRepository` for asynchronous local reads, inserts, and deletes.
+- A contact can have any number of aliases. A normalized alias can also belong to more than one contact; this is intentional so later matching can surface ambiguity rather than selecting an arbitrary person.
+- Duplicate normalized aliases are prevented only for the same contact and language.
+- Added Room migration 2 → 3. It creates the alias table and indexes without changing the existing `speech_dictionary` table or its rows.
+- No contact records are copied into Room. The alias table has no foreign key to Android's Contacts Provider because that provider is external to VoiceDeck's database.
+- Alias creation, contact-staleness cleanup, and matching integration are not part of 6A; they will be handled in subsequent increments.
+
+### Validation status
+
+- Source and migration SQL were reviewed against the existing Room version-2 schema.
+- Android/Gradle build and instrumentation tests were not run in this environment: the archive has no Gradle wrapper and the current execution environment has no `gradle` executable.
+- Run `gradle :app:assembleDebug :app:connectedDebugAndroidTest` on the development machine. Room schema export for version 3 should be generated under `app/schemas/` by the build and committed with this milestone.

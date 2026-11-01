@@ -9,12 +9,14 @@ import androidx.room.RoomDatabase;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
+import com.voicedeck.app.data.local.dao.ContactAliasDao;
 import com.voicedeck.app.data.local.dao.SpeechDictionaryDao;
+import com.voicedeck.app.data.local.entity.ContactAlias;
 import com.voicedeck.app.data.local.entity.SpeechDictionaryEntry;
 
 @Database(
-        entities = {SpeechDictionaryEntry.class},
-        version = 2,
+        entities = {SpeechDictionaryEntry.class, ContactAlias.class},
+        version = 3,
         exportSchema = true
 )
 public abstract class VoiceDeckDatabase extends RoomDatabase {
@@ -39,7 +41,29 @@ public abstract class VoiceDeckDatabase extends RoomDatabase {
         }
     };
 
+    /** Adds local contact aliases without changing or deleting existing dictionary data. */
+    public static final Migration MIGRATION_2_3 = new Migration(2, 3) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("CREATE TABLE IF NOT EXISTS contact_aliases (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "contactId INTEGER NOT NULL, " +
+                    "alias TEXT NOT NULL, " +
+                    "normalizedAlias TEXT NOT NULL, " +
+                    "languageTag TEXT NOT NULL, " +
+                    "createdAt INTEGER NOT NULL)");
+            database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS " +
+                    "index_contact_aliases_contactId_normalizedAlias_languageTag " +
+                    "ON contact_aliases (contactId, normalizedAlias, languageTag)");
+            database.execSQL("CREATE INDEX IF NOT EXISTS " +
+                    "index_contact_aliases_normalizedAlias_languageTag " +
+                    "ON contact_aliases (normalizedAlias, languageTag)");
+        }
+    };
+
     public abstract SpeechDictionaryDao speechDictionaryDao();
+
+    public abstract ContactAliasDao contactAliasDao();
 
     public static VoiceDeckDatabase getInstance(@NonNull Context context) {
         if (INSTANCE == null) {
@@ -49,7 +73,7 @@ public abstract class VoiceDeckDatabase extends RoomDatabase {
                             context.getApplicationContext(),
                             VoiceDeckDatabase.class,
                             "voicedeck.db"
-                    ).addMigrations(MIGRATION_1_2).build();
+                    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build();
                 }
             }
         }
