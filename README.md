@@ -20,6 +20,7 @@ A native Java Android starter implementation for the frozen VoiceDeck UI v1.0.
 - Card back with email, company, birthday, address and Open in Google Contacts.
 - Previous / Next navigation (no swipe navigation).
 - Language selection in Settings.
+- Local Room database foundation for the speech dictionary (dictionary-driven filtering is a subsequent milestone).
 - Call places a direct phone call after the user grants the Android Phone permission; if permission is denied, it opens the dialler instead. WhatsApp opens a chat link when the number is valid.
 
 ## Open and run
@@ -58,6 +59,7 @@ Speech recognition errors now show a specific message for silence/timeouts, miss
 
 ## Project documentation and resources
 - Product, UI, architecture, roadmap, privacy, development, testing and release guidance: [`docs/`](docs/README.md).
+- Room database entities, DAO, repository, schema export and migration guardrails: see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [ADR-004](docs/decisions/ADR-004-room-local-data-layer.md).
 - Design baseline, branding asset location and synthetic test contacts: [`resources/`](resources/README.md).
 - Android app version metadata: [`version.properties`](version.properties).
 - Decision records: [`docs/decisions/`](docs/decisions/README.md).

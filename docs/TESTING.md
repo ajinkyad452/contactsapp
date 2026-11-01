@@ -16,6 +16,15 @@ Run the contact-matching regression suite from the project root:
 
 The suite is in `app/src/test/java/com/voicedeck/app/ContactNameMatcherTest.java` and covers complete-name-before-filtering behavior, greeting collisions, partial matches, ambiguity, aliases, empty input, and normalization.
 
+## Room database instrumentation tests
+Run on an emulator or connected Android device:
+
+```bash
+./gradlew :app:connectedDebugAndroidTest
+```
+
+`SpeechDictionaryDaoTest` checks language filtering, enabled/disabled entries, and duplicate normalized-term protection using an in-memory Room database. The test database permits main-thread queries only inside the test; production database operations must use the repository's background executor.
+
 ## Functional checklist
 - [ ] First launch and permission explanation.
 - [ ] Contacts permission granted; contacts load.

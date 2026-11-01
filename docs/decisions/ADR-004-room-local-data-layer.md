@@ -1,6 +1,6 @@
 # ADR-004: Use Room for the future local data layer
 
-- Status: Accepted — implementation planned, not yet started
+- Status: Accepted — Room foundation implemented; dictionary integration pending
 - Date: 2026-11-01
 
 ## Context
@@ -11,7 +11,7 @@ The product roadmap calls for locally managed speech vocabulary and, later, addi
 
 ## Decision
 
-When persistent app-managed data is introduced, use **AndroidX Room**, backed by SQLite, as VoiceDeck's local database abstraction. Do not build the new data layer directly on `SQLiteOpenHelper`.
+Use **AndroidX Room**, backed by SQLite, as VoiceDeck's local database abstraction. Do not build the data layer directly on `SQLiteOpenHelper`.
 
 Keep database concerns modular and separate from the activity and speech-matching implementation:
 
@@ -21,7 +21,7 @@ Keep database concerns modular and separate from the activity and speech-matchin
 - `data/repository/` — repositories that expose app-facing data operations.
 - `speech/` — speech processing and command-filtering logic, independent of Room APIs.
 
-Implement this incrementally. The first persisted feature will be a `speech_dictionary` table containing dictionary terms/phrases, their language, their category (for example command, greeting, or filler), and an active flag. A repository will provide the active entries to the speech layer. The speech layer must not query Room directly.
+The first implementation increment is now in place: Room 2.8.5, `VoiceDeckDatabase`, `SpeechDictionaryEntry`, `SpeechDictionaryDao`, and `SpeechDictionaryRepository`. The table stores terms/phrases, normalized terms, language tags, categories (command, greeting, or filler), and an enabled flag. The repository provides asynchronous access through caller-supplied executors. Dictionary seeding and speech-layer integration remain a separate milestone; the speech layer must not query Room directly.
 
 ## Planned data scope
 
@@ -48,11 +48,20 @@ These are planned concepts, not tables that exist in the current app. Names and 
 
 ## Consequences
 
-- Room will add a dependency and generated-code/build requirements when the first database increment is implemented; it is not added by this documentation decision alone.
-- Entities, DAOs, repositories, migrations, and database tests will be introduced only as each feature needs them.
+- Room adds a runtime dependency and annotation-processor-generated code to the Android build.
+- The initial version-1 schema contains only `speech_dictionary`; additional entities will be introduced only when their feature needs them.
+- The exported schema must be committed, and future schema versions must include explicit migrations and migration tests.
 - Existing contact loading, matching outcomes, voice flow, UI, and call/WhatsApp actions must remain intact during the migration.
 - The first implementation milestone is the Room foundation plus `speech_dictionary`; future tables must not be pre-created without an implemented requirement.
 
 ## Implementation status
 
-No Room dependency, database class, entity, DAO, repository, or migration is present in the current v1.4.0 source snapshot. Track implementation in [the project roadmap](../ROADMAP.md).
+- [x] Room 2.8.5 runtime and Java annotation processor configured.
+- [x] Version-1 `VoiceDeckDatabase` singleton added; destructive migration fallback is not enabled.
+- [x] Initial `speech_dictionary` entity and DAO added.
+- [x] Asynchronous repository boundary added with injected executors.
+- [x] Instrumented DAO tests added for language/enabled filtering and duplicate prevention.
+- [ ] Run Android Gradle build and instrumented tests; commit generated schema JSON under `app/schemas/`.
+- [ ] Seed dictionary entries and integrate the speech filter in the next milestone.
+
+Room 3.x was not selected because the current Room 3 toolchain requires Kotlin/KSP and would expand this Java-only project's build toolchain. Room 2.8.5 documents Java `annotationProcessor` support. Track progress in [the project roadmap](../ROADMAP.md).

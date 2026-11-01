@@ -6,7 +6,8 @@
 - Android Gradle Plugin 8.7.3
 - Java 17
 - compileSdk 35, targetSdk 35, minSdk 26
-- AndroidX Core dependency
+- AndroidX Core 1.15.0
+- AndroidX Room 2.8.5 (Java annotation processor)
 
 ## Package
 `com.voicedeck.app`
@@ -37,12 +38,12 @@
 - Keep permission requests tied to an explicit user action.
 
 
-## Planned local data architecture (not implemented)
+## Local data architecture
 
-The current v1.4.0 app does not include a local application database. Contacts continue to come from Android's Contacts Provider, and the current `ContactNameMatcher` accepts an optional in-memory alias map. It checks complete contact-name/alias phrases against the original recognized phrase, then uses a hardcoded command/greeting filter only for partial-token matching. The filter remains temporary until the planned Room-backed speech dictionary is implemented.
+VoiceDeck now has a Room database foundation under `data/local/`, with entities under `data/local/entity/`, DAOs under `data/local/dao/`, and repositories under `data/repository/`. The first and only table currently implemented is `speech_dictionary`. Its data is local to the device; contacts remain sourced from Android's Contacts Provider and are not copied into this database.
 
-For future app-managed persistent data, the accepted direction is AndroidX Room (SQLite underneath), with database entities and DAOs under `data/local/`, repositories under `data/repository/`, and speech processing under `speech/`. The first database increment is limited to a `speech_dictionary` table. Later candidates include `contact_aliases` (provider IDs only), `contact_recordings`, and `voice_preferences`; `speech_patterns` and `recognition_history` remain conditional on a clear need.
+`VoiceDeckDatabase` is a process-wide singleton using the application context and the database file `voicedeck.db`. The database is version 1 and does not enable destructive migration fallback. Room schema export is configured to `app/schemas/`; generated schema JSON must be committed after the first successful Gradle build. Future schema changes must increment the database version and add explicit migrations.
 
-The speech layer must not access Room directly. Database operations must run off the main thread, schema changes must use versioned migrations, and all app-managed data remains local. Full legitimate contact names must be checked before dictionary filtering so that a greeting word which is also part of a contact name (for example, “Hello Tunes”) is not stripped before matching.
+`SpeechDictionaryRepository` exposes asynchronous operations and accepts caller-provided database and callback executors. Database work must remain off the main thread. Activities and speech-matching classes must not access DAOs directly. Dictionary loading and speech-filter integration are not yet connected; the existing matcher remains unchanged in this milestone.
 
-This is a future architecture plan, not a description of existing classes or dependencies. No Room dependency or database implementation is included in the current source. See [ADR-004](decisions/ADR-004-room-local-data-layer.md) and the [development roadmap](ROADMAP.md) for the decision and milestones.
+Room 2.8.5 is used with Java annotation processing. Room 3.x is not selected because its current toolchain is Kotlin/KSP-first and would require a Kotlin build-toolchain change for this Java-only app. See [ADR-004](decisions/ADR-004-room-local-data-layer.md) and the [development roadmap](ROADMAP.md).

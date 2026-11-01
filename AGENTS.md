@@ -14,6 +14,9 @@ These instructions apply to the whole repository. Read `README.md`, `CHANGELOG.m
 - Package / namespace: `com.voicedeck.app`.
 - Use Java 17, Android Gradle Plugin 8.7.3, Gradle 8.9, compileSdk 35, minSdk 26, targetSdk 35 unless the user approves a version change.
 - Keep dependencies minimal. Explain any new dependency and why it is needed.
+- Use Room for app-managed persistence. Keep entities/DAOs under `data/local/`, repositories under `data/repository/`, and keep activities/speech matching away from DAO access.
+- Never allow Room queries or writes on the main thread. Do not add destructive migration fallback; export and commit Room schemas and write explicit migrations/tests for schema changes.
+- Add only tables required by an implemented feature; do not pre-create speculative future tables.
 - Request only permissions needed for a user-visible feature. Do not weaken Android privacy/security controls or silently change permission behavior.
 - Treat device speech-recognition providers as external components; distinguish VoiceDeck permissions from provider permissions in diagnostics.
 - Never log contact contents, phone numbers, transcripts, or other personal data.

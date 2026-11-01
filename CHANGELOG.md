@@ -1,6 +1,8 @@
 # VoiceDeck Changelog
 
 ## Unreleased
+- Add the Room 2.8.5 database foundation with a version-1 `speech_dictionary` table, DAO, and asynchronous repository boundary.
+- Configure Java annotation processing and Room schema export; add instrumented DAO tests for language filtering and duplicate prevention.
 - Check complete contact names and aliases against the original recognized phrase before filtering command/greeting words for partial-token matching.
 - Add greeting terms to the partial-match filter and return `NO_MATCH` when filtering leaves no candidate tokens.
 - Add JVM regression tests for full names, greeting collisions, partial matches, ambiguity, aliases, and normalization.

@@ -29,6 +29,16 @@ Then commit `gradlew`, `gradlew.bat`, and `gradle/wrapper/`.
 ## Version metadata
 The Android version is read from the root `version.properties` file. Update `VERSION_NAME` and increment `VERSION_CODE` when preparing a release. Do not increment the version code for ordinary documentation-only changes.
 
+## Room database validation
+Room uses Java annotation processing in this Java-only project. The processor exports versioned schemas to `app/schemas/`; commit generated schema JSON after the first successful build and after every schema change.
+
+Run the Room DAO instrumentation tests on an emulator or connected Android device:
+```bash
+./gradlew :app:connectedDebugAndroidTest
+```
+
+Do not use destructive migration fallback for routine upgrades. Add and test an explicit migration whenever the Room database version changes.
+
 ## Useful checks
 ```bash
 git status --short

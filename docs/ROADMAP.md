@@ -40,14 +40,18 @@ This roadmap separates the current implemented baseline from planned work. A lis
 
 ### Milestone 3 — Introduce the Room foundation
 
-**Status:** Planned
+**Status:** Implemented in source; Android build, schema generation, and device test pending
 
-- [ ] Add a compatible AndroidX Room dependency and required annotation processing configuration for this Java project.
-- [ ] Add `VoiceDeckDatabase`, entity/DAO packages, and repository package.
-- [ ] Implement only the initial `speech_dictionary` entity and DAO.
-- [ ] Add a versioned schema and migration strategy; test database creation and migration behavior.
-- [ ] Keep database operations off the main thread and keep database access out of activities and speech-matching classes.
-- [ ] Do not change the existing UI, permissions, contact source, or call/WhatsApp behavior.
+- [x] Add AndroidX Room 2.8.5 and Java annotation processing.
+- [x] Add `VoiceDeckDatabase`, entity/DAO packages, and repository package.
+- [x] Implement only the initial `speech_dictionary` entity and DAO.
+- [x] Configure version 1 and Room schema export; no destructive migration fallback.
+- [x] Add asynchronous repository operations with injected executors.
+- [x] Add instrumented DAO tests for language/enabled filtering and duplicate prevention.
+- [ ] Run Android Gradle build and instrumented tests; commit generated schema JSON under `app/schemas/`.
+- [ ] Verify app launch and existing voice/contact flows on supported devices.
+- [x] Leave dictionary seeding and speech matching integration for Milestone 4.
+- [x] Do not change the existing UI, permissions, contact source, or call/WhatsApp behavior.
 
 ### Milestone 4 — Integrate dictionary-driven speech filtering
 
