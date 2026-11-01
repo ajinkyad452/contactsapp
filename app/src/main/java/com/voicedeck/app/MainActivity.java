@@ -44,7 +44,9 @@ import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 
 import com.voicedeck.app.data.local.VoiceDeckDatabase;
+import com.voicedeck.app.data.local.entity.ContactAlias;
 import com.voicedeck.app.data.local.entity.SpeechDictionaryEntry;
+import com.voicedeck.app.data.repository.ContactAliasRepository;
 import com.voicedeck.app.data.repository.SpeechDictionaryRepository;
 import com.voicedeck.app.speech.SpeechCommandFilter;
 import com.voicedeck.app.speech.SpeechDictionaryDefaults;
@@ -85,6 +87,15 @@ public class MainActivity extends Activity {
     private final List<ContactItem> contacts = new ArrayList<>();
     private ContactNameMatcher contactNameMatcher;
     private SpeechDictionaryRepository speechDictionaryRepository;
+    private ContactAliasRepository contactAliasRepository;
+    private boolean contactsLoaded;
+    private boolean contactMatcherReady;
+    private boolean contactAliasesLoading;
+    private String contactMatcherLanguage;
+    private String contactAliasesLoadingLanguage;
+    private int contactLoadGeneration;
+    private int contactAliasesLoadingGeneration;
+    private int contactAliasRequestId;
     private final ExecutorService databaseExecutor = Executors.newSingleThreadExecutor();
     private SpeechCommandFilter speechCommandFilter = SpeechCommandFilter.empty();
     private boolean speechDictionaryReady;
@@ -367,7 +378,15 @@ public class MainActivity extends Activity {
 
     private void loadContacts() {
         contacts.clear();
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) return;
+        contactsLoaded = false;
+        contactMatcherReady = false;
+        contactNameMatcher = null;
+        final int generation = ++contactLoadGeneration;
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+            contactsLoaded = true;
+            loadContactAliases(generation);
+            return;
+        }
         Uri uri = ContactsContract.CommonDataKinds.Phone.CONTENT_URI;
         String[] projection = {
                 ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
@@ -396,8 +415,72 @@ public class MainActivity extends Activity {
             Toast.makeText(this, "Could not read contacts.", Toast.LENGTH_LONG).show();
         }
         for (ContactItem item : contacts) loadExtraDetails(item);
-        // Rebuild the local name index whenever the device contact list is loaded.
-        contactNameMatcher = new ContactNameMatcher(contacts, Collections.emptyMap());
+        contactsLoaded = true;
+        // Rebuild the local name index only after aliases for the active language load.
+        loadContactAliases(generation);
+    }
+
+    /** Loads only aliases for the active speech language and ignores stale contact IDs. */
+    private void loadContactAliases(int contactGeneration) {
+        if (contactAliasRepository == null) {
+            contactMatcherReady = false;
+            return;
+        }
+
+        final String requestedLanguage = language;
+        if (contactAliasesLoading
+                && requestedLanguage.equals(contactAliasesLoadingLanguage)
+                && contactGeneration == contactAliasesLoadingGeneration) {
+            return;
+        }
+
+        contactMatcherReady = false;
+        contactAliasesLoading = true;
+        contactAliasesLoadingLanguage = requestedLanguage;
+        contactAliasesLoadingGeneration = contactGeneration;
+        final int requestId = ++contactAliasRequestId;
+
+        final Set<Long> currentContactIds = new HashSet<>();
+        for (ContactItem contact : contacts) {
+            if (contact != null) currentContactIds.add(contact.id);
+        }
+
+        contactAliasRepository.getAliasesForLanguage(
+                requestedLanguage,
+                new ContactAliasRepository.ResultCallback<List<ContactAlias>>() {
+                    @Override public void onSuccess(List<ContactAlias> aliases) {
+                        if (isFinishing() || isDestroyed()) return;
+                        if (requestId != contactAliasRequestId
+                                || contactGeneration != contactLoadGeneration) return;
+                        if (!requestedLanguage.equals(language)) {
+                            loadContactAliases(contactLoadGeneration);
+                            return;
+                        }
+                        contactAliasesLoading = false;
+                        contactNameMatcher = new ContactNameMatcher(
+                                contacts, ContactAliasMatcherMap.fromAliases(aliases, currentContactIds));
+                        contactMatcherLanguage = requestedLanguage;
+                        contactMatcherReady = true;
+                        processPendingContactQuery();
+                    }
+
+                    @Override public void onError(Exception error) {
+                        if (isFinishing() || isDestroyed()) return;
+                        if (requestId != contactAliasRequestId
+                                || contactGeneration != contactLoadGeneration) return;
+                        if (!requestedLanguage.equals(language)) {
+                            loadContactAliases(contactLoadGeneration);
+                            return;
+                        }
+                        contactAliasesLoading = false;
+                        // Keep ordinary contact-name search available if alias storage fails.
+                        contactNameMatcher = new ContactNameMatcher(contacts, Collections.emptyMap());
+                        contactMatcherLanguage = requestedLanguage;
+                        contactMatcherReady = true;
+                        processPendingContactQuery();
+                    }
+                }
+        );
     }
 
     private String safe(String s) { return s == null ? "" : s.trim(); }
@@ -544,8 +627,14 @@ public class MainActivity extends Activity {
 
     private void initializeSpeechDictionary() {
         speechDictionaryReady = false;
+        VoiceDeckDatabase database = VoiceDeckDatabase.getInstance(this);
         speechDictionaryRepository = new SpeechDictionaryRepository(
-                VoiceDeckDatabase.getInstance(this),
+                database,
+                databaseExecutor,
+                command -> runOnUiThread(command)
+        );
+        contactAliasRepository = new ContactAliasRepository(
+                database,
                 databaseExecutor,
                 command -> runOnUiThread(command)
         );
@@ -613,7 +702,8 @@ public class MainActivity extends Activity {
     }
 
     private void processPendingContactQuery() {
-        if (pendingContactQuery == null) return;
+        if (pendingContactQuery == null || !speechDictionaryReady
+                || !contactMatcherReady || !language.equals(contactMatcherLanguage)) return;
         String query = pendingContactQuery;
         pendingContactQuery = null;
         findContactNow(query);
@@ -631,10 +721,13 @@ public class MainActivity extends Activity {
     }
 
     private void findContactNow(String spoken) {
-        if (contacts.isEmpty()) loadContacts();
+        if (!contactsLoaded) loadContacts();
 
-        if (contactNameMatcher == null) {
-            contactNameMatcher = new ContactNameMatcher(contacts, Collections.emptyMap());
+        if (!contactMatcherReady || !language.equals(contactMatcherLanguage)) {
+            pendingContactQuery = spoken;
+            statusText.setText("Loading saved contact names…");
+            loadContactAliases(contactLoadGeneration);
+            return;
         }
 
         ContactNameMatcher.Result result = contactNameMatcher.resolve(spoken, speechCommandFilter);
@@ -1589,6 +1682,7 @@ public class MainActivity extends Activity {
             option.setOnClickListener(v -> {
                 language = selected; getPreferences(MODE_PRIVATE).edit().putString("language", language).apply();
                 loadSpeechDictionary();
+                loadContactAliases(contactLoadGeneration);
                 showSettings();
             });
             group.addView(option, new RadioGroup.LayoutParams(-1, dp(58)));

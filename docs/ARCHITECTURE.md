@@ -26,9 +26,10 @@
 2. VoiceDeck requests the Android runtime permissions needed for contacts and microphone features.
 3. Speech recognition is delegated to the recognition service configured on the device.
 4. The selected language's enabled speech dictionary entries are loaded locally through the repository.
-5. `ContactNameMatcher` checks complete contact-name/alias phrases against the original recognized phrase; `SpeechCommandFilter` then filters dictionary terms only for partial-token matching.
-6. The UI displays the selected contact and available details.
-6. Call and WhatsApp actions hand off to Android intents / target applications.
+5. The active language's contact aliases are loaded asynchronously from Room and filtered to contact IDs present in the current Contacts Provider result.
+6. `ContactNameMatcher` checks contact names and aliases against the original recognized phrase; `SpeechCommandFilter` then filters dictionary terms only for partial-token matching.
+7. The UI displays the selected contact and available details.
+8. Call and WhatsApp actions hand off to Android intents / target applications.
 
 ## External dependencies and boundaries
 - Speech recognition availability, language packs, network requirements, and microphone access are controlled partly by the device's configured recognition provider.
@@ -44,14 +45,16 @@
 
 ## Local data architecture
 
-VoiceDeck now has a Room database foundation under `data/local/`, with entities under `data/local/entity/`, DAOs under `data/local/dao/`, and repositories under `data/repository/`. The first and only table currently implemented is `speech_dictionary`. Its data is local to the device; contacts remain sourced from Android's Contacts Provider and are not copied into this database.
+VoiceDeck has a Room database under `data/local/`, with entities under `data/local/entity/`, DAOs under `data/local/dao/`, and repositories under `data/repository/`. The implemented tables are `speech_dictionary` and `contact_aliases`. Both remain local to the device; contact records themselves continue to be sourced from Android's Contacts Provider and are not copied into Room.
 
-`VoiceDeckDatabase` is a process-wide singleton using the application context and the database file `voicedeck.db`. The database is version 1 and does not enable destructive migration fallback. Room schema export is configured to `app/schemas/`; generated schema JSON must be committed after the first successful Gradle build. Future schema changes must increment the database version and add explicit migrations.
+`VoiceDeckDatabase` is a process-wide singleton using the application context and the database file `voicedeck.db`. The current database is version 3 and does not enable destructive migration fallback. Version 1 introduced `speech_dictionary`; version 2 added default/protection metadata; version 3 added `contact_aliases`. Room schema export is configured to `app/schemas/`; generated schema JSON must be committed after each successful Gradle build. Future schema changes must increment the database version and add explicit migrations.
 
-`SpeechDictionaryRepository` exposes asynchronous operations and accepts caller-provided database and callback executors. Database work must remain off the main thread. Activities and speech-matching classes must not access DAOs directly.
+`SpeechDictionaryRepository` and `ContactAliasRepository` expose asynchronous operations and accept caller-provided database and callback executors. Database work must remain off the main thread. Activities and speech-matching classes must not access DAOs directly.
 
 `SpeechDictionaryDefaults` supplies the initial English (`en-IN`), Hindi (`hi-IN`), and Marathi (`mr-IN`) command, greeting, and filler vocabulary. On app startup, defaults are inserted with conflict-ignore semantics so existing user edits and disabled entries are preserved. The active language's enabled entries are then loaded asynchronously through the repository. If database initialization or loading fails, VoiceDeck uses the bundled terms in memory for that session; it does not block the UI or silently switch language.
 
-`SpeechCommandFilter` is a pure-Java component. It accepts terms from the repository and removes exact token/phrase matches from recognized text. `ContactNameMatcher` checks complete contact names and aliases against the original phrase first; filtering is only used for weaker partial-token matching. This ordering protects names such as “Hello Tunes”. Normalization preserves Indic combining marks while continuing to fold Latin accents. The matcher has no direct Room dependency.
+`SpeechCommandFilter` is a pure-Java component. It accepts terms from the repository and removes exact token/phrase matches from recognized text. `ContactNameMatcher` checks complete contact names and aliases against the original phrase first; filtering is only used for weaker partial-token matching. Multi-word names and aliases receive stronger phrase scores, while one-word aliases are treated with the same strength as one-word contact-name matches so they cannot silently override another person's actual name. This ordering protects names such as “Hello Tunes” and preserves ambiguity. Normalization preserves Indic combining marks while continuing to fold Latin accents. The matcher has no direct Room dependency.
+
+`MainActivity` loads aliases for the active recognition language through `ContactAliasRepository`, then builds the matcher's in-memory alias map. The map is restricted to contact IDs present in the current Contacts Provider result; aliases whose contact IDs are stale are ignored. Alias data remains local and no contact records are copied into Room. Alias creation and management are a later user-facing milestone.
 
 Room 2.8.5 is used with Java annotation processing. Room 3.x is not selected because its current toolchain is Kotlin/KSP-first and would require a Kotlin build-toolchain change for this Java-only app. See [ADR-004](decisions/ADR-004-room-local-data-layer.md) and the [development roadmap](ROADMAP.md).

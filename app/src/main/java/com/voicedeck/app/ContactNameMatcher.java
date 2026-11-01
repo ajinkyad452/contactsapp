@@ -69,8 +69,7 @@ public final class ContactNameMatcher {
 
     /**
      * @param contacts contacts already read from the device's Contacts Provider
-     * @param aliases optional locally configured aliases keyed by ContactItem.id.
-     *                Pass an empty map until alias management is introduced.
+     * @param aliases locally configured aliases keyed by ContactItem.id; may be empty
      */
     public ContactNameMatcher(List<ContactItem> contacts,
                               Map<Long, List<String>> aliases) {
@@ -139,10 +138,14 @@ public final class ContactNameMatcher {
         int bestScore = 0;
         int matchedNameTokens = 0;
 
-        // A complete first+last name or alias is stronger than a single token.
+        // Multi-word full names/aliases are stronger than a single token. A
+        // one-word alias has the same strength as a first-name match so it cannot
+        // silently override another contact whose real name contains that word.
         for (List<String> phrase : entry.namePhrases) {
             if (containsPhrase(originalTokens, phrase)) {
-                int phraseScore = 1000 + (phrase.size() * 20);
+                int phraseScore = phrase.size() == 1
+                        ? 110
+                        : 1000 + (phrase.size() * 20);
                 bestScore = Math.max(bestScore, phraseScore);
             }
         }

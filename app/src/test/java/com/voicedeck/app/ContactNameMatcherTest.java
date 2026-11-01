@@ -142,6 +142,52 @@ public class ContactNameMatcherTest {
     }
 
     @Test
+    public void oneContactCanBeMatchedByAnyOfMultipleAliases() {
+        ContactItem sunita = contact(1, "Sunita Sharma");
+        Map<Long, List<String>> aliases = new HashMap<>();
+        aliases.put(sunita.id, Arrays.asList("Aai", "Mummy", "Mom"));
+        ContactNameMatcher matcher = new ContactNameMatcher(
+                Collections.singletonList(sunita), aliases);
+
+        assertMatch(matcher.resolve("Please call Aai", englishFilter()), sunita);
+        assertMatch(matcher.resolve("Call Mummy", englishFilter()), sunita);
+        assertMatch(matcher.resolve("I want to speak with Mom", englishFilter()), sunita);
+    }
+
+    @Test
+    public void duplicateAliasAcrossContactsReturnsMultipleMatches() {
+        ContactItem rahulSharma = contact(1, "Rahul Sharma");
+        ContactItem rahulPatil = contact(2, "Rahul Patil");
+        Map<Long, List<String>> aliases = new HashMap<>();
+        aliases.put(rahulSharma.id, Collections.singletonList("Rahul"));
+        aliases.put(rahulPatil.id, Collections.singletonList("Rahul"));
+        ContactNameMatcher matcher = new ContactNameMatcher(
+                Arrays.asList(rahulSharma, rahulPatil), aliases);
+
+        ContactNameMatcher.Result result = matcher.resolve("Call Rahul", englishFilter());
+
+        assertEquals(ContactNameMatcher.Status.MULTIPLE_MATCHES, result.getStatus());
+        assertEquals(2, result.getMatches().size());
+        assertSame(rahulSharma, result.getMatches().get(0));
+        assertSame(rahulPatil, result.getMatches().get(1));
+    }
+
+    @Test
+    public void exactContactNameAndAnotherContactsAliasRemainAmbiguous() {
+        ContactItem rahulSharma = contact(1, "Rahul Sharma");
+        ContactItem amitDesai = contact(2, "Amit Desai");
+        Map<Long, List<String>> aliases = new HashMap<>();
+        aliases.put(amitDesai.id, Collections.singletonList("Rahul"));
+        ContactNameMatcher matcher = new ContactNameMatcher(
+                Arrays.asList(rahulSharma, amitDesai), aliases);
+
+        ContactNameMatcher.Result result = matcher.resolve("Call Rahul", englishFilter());
+
+        assertEquals(ContactNameMatcher.Status.MULTIPLE_MATCHES, result.getStatus());
+        assertEquals(2, result.getMatches().size());
+    }
+
+    @Test
     public void normalizesAccentsAndPunctuation() {
         ContactItem jose = contact(1, "José O'Neil");
 

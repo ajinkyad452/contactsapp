@@ -11,7 +11,7 @@ This roadmap separates the current implemented baseline from planned work. A lis
 - `ContactNameMatcher` checks complete contact-name/alias phrases before applying a supplied speech filter to weaker partial-token matching.
 - The Room-backed `speech_dictionary` is seeded with starter command, greeting, and filler terms for English (`en-IN`), Hindi (`hi-IN`), and Marathi (`mr-IN`).
 - `SpeechCommandFilter` is a pure-Java boundary; it receives enabled terms from the repository and has no direct Room dependency.
-- Optional alias input is supported by the matcher constructor, but alias management and persistence are not implemented.
+- Contact aliases are stored locally in Room and loaded for the active speech language; the matcher receives only aliases whose Android Contacts Provider IDs are present in the current contact list. Alias creation/management UI is not implemented yet.
 - Voice-first contact card, Call / WhatsApp actions, Previous / Next navigation, manual search, and existing permission recovery remain the frozen product baseline.
 
 ## Next milestones
@@ -89,11 +89,27 @@ This roadmap separates the current implemented baseline from planned work. A lis
 - [ ] Upgrade an existing v1 database on-device and verify all 56 existing terms survive migration.
 - [ ] Verify adding, toggling, removing, and restoring vocabulary on a physical device.
 
+### Milestone 6 — Contact alias foundation and matching
+
+**Status:** 6A storage implemented and device-verified; 6B matching integration implemented in source, build/device validation pending
+
+- [x] Add the `contact_aliases` Room entity, DAO, and asynchronous repository.
+- [x] Add the non-destructive Room 2-to-3 migration.
+- [x] Support multiple aliases for one contact and duplicate aliases across contacts.
+- [x] Load aliases for the currently selected recognition language.
+- [x] Build the in-memory matcher alias map from current Android Contacts Provider IDs only; stale IDs are ignored.
+- [x] Queue a search until both the speech dictionary and alias-backed matcher are ready.
+- [x] Rebuild the matcher when contacts are reloaded or the speech language changes.
+- [x] Preserve ambiguity when an alias conflicts with another contact's actual one-word name.
+- [x] Add JVM tests for multiple aliases, duplicate alias ambiguity, and stale contact IDs.
+- [ ] Run `:app:testDebugUnitTest`, `:app:assembleDebug`, and `:app:connectedDebugAndroidTest`.
+- [ ] Verify alias matches and duplicate-alias chooser behavior on a physical device after aliases can be added in Milestone 6C.
+
 ## Later feature areas
 
 | Feature | Planned data approach | Status |
 |---|---|---|
-| Contact aliases | `contact_aliases`, referencing Android Contacts Provider IDs | Planned |
+| Contact alias creation/management | Existing `contact_aliases` table; voice-led creation after `NO_MATCH` | Milestone 6C / 6D |
 | Custom contact recordings | `contact_recordings`, associated with provider contact IDs | Planned |
 | Voice preferences | `voice_preferences` | Planned |
 | Advanced user-defined speech vocabulary/patterns | `speech_patterns`, if justified beyond the basic dictionary | Optional future work |

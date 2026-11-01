@@ -7,15 +7,23 @@ import android.database.sqlite.SQLiteOpenHelper;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import com.voicedeck.app.ContactAliasMatcherMap;
+import com.voicedeck.app.ContactItem;
+import com.voicedeck.app.ContactNameMatcher;
 import com.voicedeck.app.data.local.dao.ContactAliasDao;
 import com.voicedeck.app.data.local.entity.ContactAlias;
+import com.voicedeck.app.speech.SpeechCommandFilter;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -86,6 +94,35 @@ public class ContactAliasDaoTest {
     }
 
     @Test
+    public void roomAliasesFlowIntoMatcherAndPreserveDuplicateAliasAmbiguity() {
+        dao.insert(alias(10, "Rahul", "rahul", "en-IN"));
+        dao.insert(alias(20, "Rahul", "rahul", "en-IN"));
+        dao.insert(alias(10, "आई", "आई", "mr-IN"));
+
+        List<ContactAlias> englishAliases = dao.getAliasesForLanguage("en-IN");
+        List<ContactAlias> marathiAliases = dao.getAliasesForLanguage("mr-IN");
+        ContactItem first = contact(10, "Rahul Sharma");
+        ContactItem second = contact(20, "Amit Desai");
+        ContactNameMatcher matcher = new ContactNameMatcher(
+                Arrays.asList(first, second),
+                ContactAliasMatcherMap.fromAliases(englishAliases,
+                        new HashSet<>(Arrays.asList(10L, 20L))));
+
+        ContactNameMatcher.Result result = matcher.resolve(
+                "Call Rahul", new SpeechCommandFilter(Collections.singletonList("call")));
+
+        assertEquals(ContactNameMatcher.Status.MULTIPLE_MATCHES, result.getStatus());
+        assertEquals(2, result.getMatches().size());
+        assertEquals(1, marathiAliases.size());
+
+        // A stored alias for a contact absent from the current Contacts Provider list is ignored.
+        Map<Long, List<String>> filtered = ContactAliasMatcherMap.fromAliases(
+                englishAliases, Collections.singleton(10L));
+        assertEquals(Collections.singletonList("Rahul"), filtered.get(10L));
+        assertTrue(!filtered.containsKey(20L));
+    }
+
+    @Test
     public void migrationFromVersionTwoCreatesAliasTableAndPreservesDictionary() {
         Context context = ApplicationProvider.getApplicationContext();
         String databaseName = "voicedeck-alias-migration-test.db";
@@ -126,6 +163,13 @@ public class ContactAliasDaoTest {
             migrated.close();
             context.deleteDatabase(databaseName);
         }
+    }
+
+    private static ContactItem contact(long id, String name) {
+        ContactItem item = new ContactItem();
+        item.id = id;
+        item.name = name;
+        return item;
     }
 
     private static ContactAlias alias(long contactId, String alias,
