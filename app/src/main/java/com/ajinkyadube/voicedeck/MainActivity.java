@@ -29,6 +29,7 @@ import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.PopupMenu;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -84,12 +85,8 @@ public class MainActivity extends Activity {
 
     private LinearLayout root;
     private LinearLayout content;
-    private LinearLayout header;
-    private TextView headerBack;
-    private TextView headerMenu;
-    private String currentScreen = "home";
-    private String settingsReturnScreen = "home";
     private TextView statusText;
+    private TextView headerBack;
     private TextView aliasSetupLink;
     private String pendingAliasForSetup;
     private TextView heardText;
@@ -118,6 +115,7 @@ public class MainActivity extends Activity {
     private List<ContactItem> currentMatches = new ArrayList<>();
     private int currentIndex = 0;
     private boolean showingBack = false;
+    private boolean cardTransitionRunning = false;
     private boolean permissionsRequested = false;
     private final ExecutorService imageExecutor = Executors.newFixedThreadPool(2);
 
@@ -144,51 +142,43 @@ public class MainActivity extends Activity {
         root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(COLOR_BACKGROUND);
-        // Keep the app header comfortably clear of the system status bar.
         root.setPadding(dp(16), dp(44), dp(16), dp(16));
 
-        header = new LinearLayout(this);
-        header.setGravity(Gravity.CENTER_VERTICAL);
-        header.setOrientation(LinearLayout.HORIZONTAL);
-        headerBack = new TextView(this);
-        headerBack.setText("‹");
-        headerBack.setTextSize(34);
+        LinearLayout top = new LinearLayout(this);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        headerBack = centeredText("‹", 34, false, COLOR_PRIMARY);
         headerBack.setGravity(Gravity.CENTER);
-        headerBack.setTextColor(COLOR_PRIMARY);
-        headerBack.setBackground(null);
         headerBack.setVisibility(View.GONE);
-        headerBack.setContentDescription("Go back");
-        headerBack.setOnClickListener(v -> navigateBack());
-        header.addView(headerBack, new LinearLayout.LayoutParams(dp(48), dp(48)));
-
+        headerBack.setContentDescription("Back");
+        headerBack.setClickable(true);
+        headerBack.setFocusable(true);
+        headerBack.setOnClickListener(v -> onBackPressed());
+        top.addView(headerBack, new LinearLayout.LayoutParams(dp(42), dp(48)));
         TextView brand = new TextView(this);
         brand.setText("VoiceDeck");
-        brand.setTextSize(22);
-        brand.setSingleLine(true);
-        brand.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        brand.setTextSize(24);
         brand.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         brand.setTextColor(COLOR_TEXT);
-        LinearLayout.LayoutParams brandParams = new LinearLayout.LayoutParams(0, dp(52), 1);
-        brandParams.leftMargin = dp(8);
-        header.addView(brand, brandParams);
-
-        headerMenu = new TextView(this);
-        headerMenu.setText("⋮");
-        headerMenu.setTextSize(30);
-        headerMenu.setGravity(Gravity.CENTER);
-        headerMenu.setTextColor(COLOR_PRIMARY);
-        headerMenu.setBackground(null);
-        headerMenu.setContentDescription("More options");
-        headerMenu.setOnClickListener(v -> {
-            android.widget.PopupMenu menu = new android.widget.PopupMenu(this, headerMenu);
-            menu.getMenu().add("Settings").setOnMenuItemClickListener(item -> {
+        top.addView(brand, new LinearLayout.LayoutParams(0, dp(52), 1));
+        TextView menu = centeredText("⋮", 30, true, COLOR_TEXT);
+        menu.setGravity(Gravity.CENTER);
+        menu.setBackgroundColor(Color.TRANSPARENT);
+        menu.setMinWidth(dp(48));
+        menu.setMinHeight(dp(48));
+        menu.setContentDescription("More options");
+        menu.setClickable(true);
+        menu.setFocusable(true);
+        menu.setOnClickListener(v -> {
+            PopupMenu popup = new PopupMenu(MainActivity.this, menu);
+            popup.getMenu().add("Settings").setOnMenuItemClickListener(item -> {
                 showSettings();
                 return true;
             });
-            menu.show();
+            popup.show();
         });
-        header.addView(headerMenu, new LinearLayout.LayoutParams(dp(48), dp(48)));
-        root.addView(header);
+        top.addView(menu, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        root.addView(top);
 
         ScrollView scroll = new ScrollView(this);
         content = new LinearLayout(this);
@@ -289,139 +279,117 @@ public class MainActivity extends Activity {
         return title;
     }
 
-    private void setCurrentScreen(String screen) {
-        currentScreen = screen;
-        if (headerBack != null) {
-            boolean canGoBack = !"home".equals(screen);
-            headerBack.setVisibility(canGoBack ? View.VISIBLE : View.GONE);
-            headerBack.setContentDescription("Back from " + screen);
-        }
-        if (statusText != null) statusText.setVisibility("home".equals(screen) ? View.VISIBLE : View.GONE);
-        if (aliasSetupLink != null && !"home".equals(screen)) aliasSetupLink.setVisibility(View.GONE);
-    }
-
-    private void navigateBack() {
-        switch (currentScreen) {
-            case "settings":
-                if ("card".equals(settingsReturnScreen) && !currentMatches.isEmpty()) {
-                    showCard(showingBack);
-                } else {
-                    showListeningPrompt(false);
-                }
-                return;
-            case "aliases":
-            case "dictionary":
-                showSettings();
-                return;
-            case "card":
-                if (showingBack && !currentMatches.isEmpty()) {
-                    showCard(false);
-                } else {
-                    currentMatches.clear();
-                    currentIndex = 0;
-                    showListeningPrompt(false);
-                }
-                return;
-            default:
-                finish();
-        }
-    }
-
     private void styleActionButton(Button button, int backgroundColor, int textColor,
                                    int strokeColor, int minHeightDp) {
         button.setAllCaps(false);
-        button.setTextSize(16);
+        button.setTextSize(18);
         button.setTextColor(textColor);
         button.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-        button.setMinHeight(dp(Math.max(48, minHeightDp)));
-        button.setPadding(dp(16), dp(8), dp(16), dp(8));
-        button.setBackground(roundedBackground(backgroundColor, strokeColor, 16));
+        button.setMinHeight(dp(minHeightDp));
+        button.setPadding(dp(18), dp(12), dp(18), dp(12));
+        button.setBackground(roundedBackground(backgroundColor, strokeColor, 18));
         if (android.os.Build.VERSION.SDK_INT >= 21) button.setElevation(dp(2));
     }
 
     private void showListeningPrompt(boolean listening) {
-        setCurrentScreen("home");
+        setSecondaryHeader(false);
         showingAliasManager = false;
         showingDictionaryManager = false;
         if (aliasSetupLink != null) aliasSetupLink.setVisibility(View.GONE);
         pendingAliasForSetup = null;
         content.removeAllViews();
         content.setGravity(Gravity.CENTER_HORIZONTAL);
-        content.setPadding(dp(2), dp(14), dp(2), dp(18));
+        content.setPadding(dp(2), dp(18), dp(2), dp(22));
 
-        TextView eyebrow = centeredText("VOICE-FIRST CONTACTS", 12, true, COLOR_SECONDARY);
-        eyebrow.setLetterSpacing(0.12f);
-        LinearLayout.LayoutParams eyebrowParams = new LinearLayout.LayoutParams(-1, dp(28));
-        content.addView(eyebrow, eyebrowParams);
+        TextView eyebrow = centeredText("VOICE-FIRST CONTACTS", 11, true, COLOR_SECONDARY);
+        eyebrow.setLetterSpacing(0.14f);
+        content.addView(eyebrow, new LinearLayout.LayoutParams(-1, dp(24)));
 
-        TextView title = centeredText(language.equals("mr-IN") ? "कोणाशी बोलायचे आहे?" :
+        String titleText = language.equals("mr-IN") ? "कोणाशी बोलायचे आहे?" :
                 language.equals("hi-IN") ? "आप किससे जुड़ना चाहते हैं?" :
-                "Who would you like to\nconnect with?", 29, true, COLOR_TEXT);
+                "Who would you like to\nconnect with?";
+        TextView title = centeredText(titleText, 29, true, COLOR_TEXT);
         title.setLineSpacing(dp(2), 1.0f);
         LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(-1, -2);
-        titleParams.topMargin = dp(10);
+        titleParams.topMargin = dp(8);
         content.addView(title, titleParams);
 
         TextView subtitle = centeredText(language.equals("mr-IN") ? "फक्त नाव सांगा. आम्ही संपर्क शोधू." :
                 language.equals("hi-IN") ? "बस नाम बोलिए। हम आपका संपर्क ढूँढेंगे।" :
-                "Just say a name. We'll find the contact for you.", 16, false, COLOR_SECONDARY);
-        subtitle.setPadding(dp(12), dp(8), dp(12), dp(18));
+                "Just say a name. We'll find the contact for you.", 15, false, COLOR_SECONDARY);
+        subtitle.setPadding(dp(10), dp(8), dp(10), dp(20));
         content.addView(subtitle, new LinearLayout.LayoutParams(-1, -2));
 
         LinearLayout voicePanel = new LinearLayout(this);
         voicePanel.setOrientation(LinearLayout.VERTICAL);
         voicePanel.setGravity(Gravity.CENTER_HORIZONTAL);
-        voicePanel.setPadding(dp(20), dp(22), dp(20), dp(22));
+        voicePanel.setPadding(dp(22), dp(26), dp(22), dp(22));
         voicePanel.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 26));
-        if (android.os.Build.VERSION.SDK_INT >= 21) voicePanel.setElevation(dp(3));
+        if (android.os.Build.VERSION.SDK_INT >= 21) voicePanel.setElevation(dp(2));
         LinearLayout.LayoutParams panelParams = new LinearLayout.LayoutParams(-1, -2);
-        panelParams.topMargin = dp(8);
+        panelParams.topMargin = dp(2);
         content.addView(voicePanel, panelParams);
 
-        TextView mic = centeredText(listening ? "🎙" : "🎤", 43, false, COLOR_PRIMARY);
-        mic.setBackground(roundedBackground(COLOR_SAGE, Color.TRANSPARENT, 48));
-        LinearLayout.LayoutParams micParams = new LinearLayout.LayoutParams(dp(104), dp(104));
-        micParams.bottomMargin = dp(16);
-        voicePanel.addView(mic, micParams);
+        // Soft concentric microphone treatment translated from the Figma prototype.
+        FrameLayout micOrbit = new FrameLayout(this);
+        micOrbit.setBackground(roundedBackground(COLOR_SAGE, Color.TRANSPARENT, 100));
+        LinearLayout.LayoutParams orbitParams = new LinearLayout.LayoutParams(dp(116), dp(116));
+        orbitParams.bottomMargin = dp(18);
+        voicePanel.addView(micOrbit, orbitParams);
+        View orbitRing = new View(this);
+        GradientDrawable ring = new GradientDrawable();
+        ring.setShape(GradientDrawable.OVAL);
+        ring.setColor(Color.TRANSPARENT);
+        ring.setStroke(dp(1), 0x55718A70);
+        FrameLayout.LayoutParams ringParams = new FrameLayout.LayoutParams(dp(94), dp(94), Gravity.CENTER);
+        micOrbit.addView(orbitRing, ringParams);
+        orbitRing.setBackground(ring);
+        TextView mic = centeredText("🎙", 39, false, COLOR_PRIMARY);
+        mic.setBackground(roundedBackground(COLOR_SURFACE, Color.TRANSPARENT, 100));
+        FrameLayout.LayoutParams micParams = new FrameLayout.LayoutParams(dp(68), dp(68), Gravity.CENTER);
+        micOrbit.addView(mic, micParams);
+        mic.setContentDescription("Microphone");
 
         TextView prompt = centeredText(listening ?
-                (language.equals("mr-IN") ? "ऐकत आहे…" : language.equals("hi-IN") ? "सुन रहा हूँ…" : "I'm listening…") :
-                (language.equals("mr-IN") ? "बोलण्यासाठी तयार" : language.equals("hi-IN") ? "बोलने के लिए तैयार" : "Ready when you are"),
+                (language.equals("mr-IN") ? "ऐकत आहे…" : language.equals("hi-IN") ? "सुन रहा हूँ…" : "I'm listening") :
+                (language.equals("mr-IN") ? "ऐकण्यासाठी तयार" : language.equals("hi-IN") ? "सुनने के लिए तैयार" : "Ready when you are"),
                 20, true, COLOR_TEXT);
         voicePanel.addView(prompt, new LinearLayout.LayoutParams(-1, -2));
 
         heardText = centeredText(listening ?
-                (language.equals("mr-IN") ? "संपर्काचे नाव सांगा" : language.equals("hi-IN") ? "कॉन्टैक्ट का नाम बोलिए" : "Say the name of your contact") :
-                (language.equals("mr-IN") ? "मायक्रोफोन बटण दाबा आणि नाव सांगा" : language.equals("hi-IN") ? "माइक बटन दबाएँ और नाम बोलें" : "Tap the button below, then say a contact's name"),
-                15, false, COLOR_SECONDARY);
-        heardText.setPadding(dp(4), dp(8), dp(4), dp(2));
+                (language.equals("mr-IN") ? "संपर्काचे नाव सांगा" : language.equals("hi-IN") ? "कॉन्टैक्ट का नाम बोलिए" : "Say the name naturally, just as you know them.") :
+                (language.equals("mr-IN") ? "मायक्रोफोन बटण दाबा आणि नाव सांगा" : language.equals("hi-IN") ? "माइक बटन दबाएँ और नाम बोलें" : "Tap the button below, then say a contact's name."),
+                14, false, COLOR_SECONDARY);
+        heardText.setPadding(dp(4), dp(7), dp(4), dp(2));
         voicePanel.addView(heardText, new LinearLayout.LayoutParams(-1, -2));
 
         Button listen = new Button(this);
         listen.setText(listening ?
                 (language.equals("mr-IN") ? "ऐकत आहे…" : language.equals("hi-IN") ? "सुन रहा हूँ…" : "Listening…") :
                 (language.equals("mr-IN") ? "बोलण्यासाठी टॅप करा" : language.equals("hi-IN") ? "बोलने के लिए टैप करें" : "Tap to speak"));
-        styleActionButton(listen, COLOR_PRIMARY, Color.WHITE, COLOR_PRIMARY, 64);
-        listen.setOnClickListener(v -> startListening());
-        LinearLayout.LayoutParams listenParams = new LinearLayout.LayoutParams(-1, dp(66));
+        styleActionButton(listen, COLOR_PRIMARY, Color.WHITE, COLOR_PRIMARY, 56);
+        LinearLayout.LayoutParams listenParams = new LinearLayout.LayoutParams(-1, dp(56));
         listenParams.topMargin = dp(22);
-        content.addView(listen, listenParams);
+        voicePanel.addView(listen, listenParams);
+        listen.setOnClickListener(v -> startListening());
 
         Button manual = new Button(this);
-        manual.setText(language.equals("mr-IN") ? "नाव टाइप करा" :
-                language.equals("hi-IN") ? "नाम टाइप करें" : "Search by typing instead");
-        styleActionButton(manual, COLOR_SURFACE, COLOR_PRIMARY, COLOR_BORDER, 58);
+        manual.setText(language.equals("mr-IN") ? "⌕   नाव टाइप करा" :
+                language.equals("hi-IN") ? "⌕   नाम टाइप करें" : "⌕   Search by typing instead");
+        styleActionButton(manual, COLOR_SURFACE, COLOR_PRIMARY, COLOR_PRIMARY, 52);
+        LinearLayout.LayoutParams manualParams = new LinearLayout.LayoutParams(-1, dp(52));
+        manualParams.topMargin = dp(10);
+        voicePanel.addView(manual, manualParams);
         manual.setOnClickListener(v -> showManualSearch());
-        LinearLayout.LayoutParams manualParams = new LinearLayout.LayoutParams(-1, dp(60));
-        manualParams.topMargin = dp(12);
-        content.addView(manual, manualParams);
 
-        TextView hint = centeredText("Your contacts stay on this phone", 13, false, COLOR_SECONDARY);
-        hint.setPadding(0, dp(20), 0, dp(4));
-        content.addView(hint, new LinearLayout.LayoutParams(-1, -2));
+        TextView privacy = centeredText("◈  Your contacts stay on this phone", 12, false, COLOR_SECONDARY);
+        privacy.setPadding(0, dp(18), 0, dp(2));
+        voicePanel.addView(privacy, new LinearLayout.LayoutParams(-1, -2));
 
-        statusText.setText(listening ? "Voice search is active. Speak a contact name." :
-                "Your simple way to reach the people who matter.");
+        TextView footer = centeredText("Your simple way to reach the people who matter.", 12, false, COLOR_SECONDARY);
+        footer.setPadding(dp(8), dp(18), dp(8), dp(4));
+        content.addView(footer, new LinearLayout.LayoutParams(-1, -2));
+        statusText.setText(listening ? "Voice search is active. Speak a contact name." : "");
     }
 
     private void ensurePermissionsAndStart() {
@@ -1180,9 +1148,51 @@ public class MainActivity extends Activity {
         });
     }
 
+    /**
+     * Animates the contact card as a two-sided physical card. The card view is
+     * rebuilt for the selected face, while the surrounding navigation stays put.
+     */
+    private void flipContactCard(boolean back) {
+        if (cardTransitionRunning || currentMatches.isEmpty() || showingBack == back) return;
+        if (content == null || content.getChildCount() == 0) {
+            showCard(back);
+            return;
+        }
+
+        View currentCard = content.getChildAt(0);
+        if (currentCard == null) {
+            showCard(back);
+            return;
+        }
+
+        cardTransitionRunning = true;
+        currentCard.setCameraDistance(dp(2400));
+        currentCard.animate()
+                .rotationY(88f)
+                .alpha(0.92f)
+                .setDuration(160)
+                .withEndAction(() -> {
+                    showCard(back);
+                    if (content.getChildCount() == 0) {
+                        cardTransitionRunning = false;
+                        return;
+                    }
+                    View nextCard = content.getChildAt(0);
+                    nextCard.setCameraDistance(dp(2400));
+                    nextCard.setRotationY(-88f);
+                    nextCard.setAlpha(0.92f);
+                    nextCard.animate()
+                            .rotationY(0f)
+                            .alpha(1f)
+                            .setDuration(190)
+                            .withEndAction(() -> cardTransitionRunning = false)
+                            .start();
+                })
+                .start();
+    }
+
     private void showCard(boolean back) {
         if (currentMatches.isEmpty()) return;
-        setCurrentScreen("card");
         showingBack = back;
         ContactItem item = currentMatches.get(Math.max(0, Math.min(currentIndex, currentMatches.size() - 1)));
         content.removeAllViews();
@@ -1201,7 +1211,7 @@ public class MainActivity extends Activity {
             eyebrow.setLetterSpacing(0.12f);
             card.addView(eyebrow, new LinearLayout.LayoutParams(-1, dp(28)));
 
-            LinearLayout.LayoutParams photoParams = new LinearLayout.LayoutParams(-1, dp(230));
+            LinearLayout.LayoutParams photoParams = new LinearLayout.LayoutParams(-1, dp(216));
             photoParams.topMargin = dp(8);
             FrameLayout photoFrame = new FrameLayout(this);
             photoFrame.setBackground(roundedBackground(COLOR_SAGE, Color.TRANSPARENT, 22));
@@ -1246,14 +1256,14 @@ public class MainActivity extends Activity {
             actions.setGravity(Gravity.CENTER);
             Button call = new Button(this);
             call.setText("☎  Call");
-            styleActionButton(call, COLOR_PRIMARY, Color.WHITE, COLOR_PRIMARY, 68);
+            styleActionButton(call, COLOR_PRIMARY, Color.WHITE, COLOR_PRIMARY, 56);
             Button whatsapp = new Button(this);
             whatsapp.setText("◉  WhatsApp");
-            styleActionButton(whatsapp, COLOR_SAGE, COLOR_PRIMARY, COLOR_SAGE, 68);
-            LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(0, dp(68), 1);
+            styleActionButton(whatsapp, COLOR_SAGE, COLOR_PRIMARY, COLOR_SAGE, 56);
+            LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(0, dp(56), 1);
             actionParams.setMargins(dp(3), 0, dp(6), 0);
             actions.addView(call, actionParams);
-            LinearLayout.LayoutParams whatsappParams = new LinearLayout.LayoutParams(0, dp(68), 1);
+            LinearLayout.LayoutParams whatsappParams = new LinearLayout.LayoutParams(0, dp(56), 1);
             whatsappParams.setMargins(dp(6), 0, dp(3), 0);
             actions.addView(whatsapp, whatsappParams);
             call.setOnClickListener(v -> callContact(item));
@@ -1264,7 +1274,10 @@ public class MainActivity extends Activity {
                     false, COLOR_SECONDARY);
             hint.setPadding(0, dp(14), 0, dp(2));
             card.addView(hint, new LinearLayout.LayoutParams(-1, -2));
-            card.setOnClickListener(v -> showCard(true));
+            card.setContentDescription("Contact card. Double tap to view more details.");
+            card.setClickable(true);
+            card.setFocusable(true);
+            card.setOnClickListener(v -> flipContactCard(true));
         } else {
             TextView eyebrow = centeredText("CONTACT DETAILS", 12, true, COLOR_SECONDARY);
             eyebrow.setLetterSpacing(0.12f);
@@ -1301,7 +1314,7 @@ public class MainActivity extends Activity {
             Button backToCard = new Button(this);
             backToCard.setText("← Back to contact card");
             styleActionButton(backToCard, COLOR_SURFACE, COLOR_PRIMARY, COLOR_BORDER, 56);
-            backToCard.setOnClickListener(v -> showCard(false));
+            backToCard.setOnClickListener(v -> flipContactCard(false));
             LinearLayout.LayoutParams backParams = new LinearLayout.LayoutParams(-1, dp(58));
             backParams.topMargin = dp(10);
             card.addView(backToCard, backParams);
@@ -1480,103 +1493,108 @@ public class MainActivity extends Activity {
         }
     }
 
-    private LinearLayout settingsSection(String heading) {
-        LinearLayout section = new LinearLayout(this);
-        section.setOrientation(LinearLayout.VERTICAL);
-        section.setPadding(dp(14), dp(12), dp(14), dp(12));
-        section.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 18));
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
-        params.topMargin = dp(12);
-        content.addView(section, params);
-        TextView label = text(heading, 12, true);
-        label.setTextColor(COLOR_SECONDARY);
-        label.setLetterSpacing(0.08f);
-        label.setPadding(dp(4), dp(2), dp(4), dp(8));
-        section.addView(label);
-        return section;
+    private void setSecondaryHeader(boolean secondary) {
+        if (headerBack != null) headerBack.setVisibility(secondary ? View.VISIBLE : View.GONE);
     }
 
-    private void addSettingRow(LinearLayout section, String title, String subtitle,
-                               String trailing, Runnable action) {
+    private void addSettingsSection(String label) {
+        TextView section = text(label.toUpperCase(java.util.Locale.ROOT), 12, true);
+        section.setTextColor(COLOR_SECONDARY);
+        section.setLetterSpacing(0.10f);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
+        p.topMargin = dp(20); p.bottomMargin = dp(8);
+        content.addView(section, p);
+    }
+
+    private void addSettingsRow(String title, String subtitle, String value, Runnable action) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(8), dp(8), dp(8), dp(8));
-        row.setMinimumHeight(dp(56));
-        row.setBackground(roundedBackground(COLOR_BACKGROUND, COLOR_BORDER, 13));
-        LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
-        rowParams.topMargin = dp(6);
-        section.addView(row, rowParams);
-        LinearLayout labels = new LinearLayout(this);
-        labels.setOrientation(LinearLayout.VERTICAL);
-        row.addView(labels, new LinearLayout.LayoutParams(0, -2, 1));
-        labels.addView(text(title, 15, true));
+        row.setPadding(dp(16), dp(13), dp(14), dp(13));
+        row.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 17));
+        LinearLayout copy = new LinearLayout(this);
+        copy.setOrientation(LinearLayout.VERTICAL);
+        TextView heading = text(title, 16, true);
+        copy.addView(heading);
         if (subtitle != null && !subtitle.isEmpty()) {
-            TextView detail = text(subtitle, 12, false);
+            TextView detail = text(subtitle, 13, false);
             detail.setTextColor(COLOR_SECONDARY);
             LinearLayout.LayoutParams detailParams = new LinearLayout.LayoutParams(-1, -2);
-            detailParams.topMargin = dp(2);
-            labels.addView(detail, detailParams);
+            detailParams.topMargin = dp(3); copy.addView(detail, detailParams);
         }
-        TextView end = text(trailing == null ? "›" : trailing, 15, true);
-        end.setTextColor(COLOR_PRIMARY);
-        end.setGravity(Gravity.CENTER);
-        row.addView(end, new LinearLayout.LayoutParams(-2, dp(40)));
-        row.setClickable(action != null);
-        row.setFocusable(action != null);
-        if (action != null) row.setOnClickListener(v -> action.run());
+        row.addView(copy, new LinearLayout.LayoutParams(0, -2, 1));
+        if (value != null && !value.isEmpty()) {
+            TextView trailing = text(value + "  ›", 14, true);
+            trailing.setTextColor(COLOR_PRIMARY);
+            row.addView(trailing);
+        } else {
+            TextView arrow = centeredText("›", 25, false, COLOR_PRIMARY);
+            row.addView(arrow, new LinearLayout.LayoutParams(dp(28), dp(36)));
+        }
+        row.setClickable(true); row.setFocusable(true);
+        row.setOnClickListener(v -> action.run());
+        LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, -2);
+        rp.bottomMargin = dp(8); content.addView(row, rp);
     }
 
     private void showSettings() {
-        if (!"settings".equals(currentScreen) && !"aliases".equals(currentScreen)
-                && !"dictionary".equals(currentScreen)) {
-            settingsReturnScreen = currentScreen;
-        }
-        setCurrentScreen("settings");
+        setSecondaryHeader(true);
         showingDictionaryManager = false;
         showingAliasManager = false;
         content.removeAllViews();
         content.setGravity(Gravity.TOP);
-        content.setPadding(dp(2), dp(8), dp(2), dp(18));
+        content.setPadding(dp(2), dp(14), dp(2), dp(22));
+        TextView heading = centeredText("SETTINGS", 12, true, COLOR_SECONDARY);
+        heading.setLetterSpacing(0.13f);
+        content.addView(heading, new LinearLayout.LayoutParams(-1, dp(28)));
+        TextView title = centeredText("Make VoiceDeck yours", 25, true, COLOR_TEXT);
+        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-1, -2);
+        tp.bottomMargin = dp(8); content.addView(title, tp);
 
-        TextView title = centeredText("Settings", 25, true, COLOR_TEXT);
-        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(-1, -2);
-        titleParams.bottomMargin = dp(4);
-        content.addView(title, titleParams);
+        addSettingsSection("Voice preferences");
+        addSettingsRow("Voice search language", "Choose the language you speak", currentLanguageName(),
+                () -> showLanguageChooser());
 
-        LinearLayout voice = settingsSection("VOICE PREFERENCES");
-        addSettingRow(voice, "Voice search language", currentLanguageName(), "Change",
-                this::showLanguageChooser);
-
-        LinearLayout personal = settingsSection("PERSONALISATION");
-        addSettingRow(personal, "Manage vocabulary", "Words and phrases used in voice matching", null,
+        addSettingsSection("Personalisation");
+        addSettingsRow("Manage vocabulary", "Words and phrases recognised by VoiceDeck", null,
                 () -> showDictionaryManager(language));
-        addSettingRow(personal, "Manage aliases", "Nicknames linked to your contacts", null,
-                this::showAliasManager);
+        addSettingsRow("Manage aliases", "Nicknames linked to your contacts", null,
+                () -> showAliasManager());
 
-        LinearLayout privacy = settingsSection("ABOUT & PRIVACY");
-        String contactsState = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS)
-                == PackageManager.PERMISSION_GRANTED ? "Allowed" : "Not allowed";
-        String microphoneState = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-                == PackageManager.PERMISSION_GRANTED ? "Allowed" : "Not allowed";
-        addSettingRow(privacy, "App permissions", "Contacts: " + contactsState
-                + " · Microphone: " + microphoneState, null, null);
-        addSettingRow(privacy, "Privacy policy", "How your information is handled", "↗",
-                () -> openLegalPage("https://ajinkyadube.com/apps/privacy.html"));
-        addSettingRow(privacy, "Terms & conditions", "App usage terms", "↗",
-                () -> openLegalPage("https://ajinkyadube.com/apps/terms.html"));
-        statusText.setText("Settings");
+        addSettingsSection("About & privacy");
+        addSettingsRow("App permissions", "Contacts and microphone access", null, () -> showPermissionsDialog());
+        addSettingsRow("Legal", "Privacy policy and terms of use", null, () -> showLegalDialog());
+        statusText.setText("");
+    }
+
+    private void showPermissionsDialog() {
+        LinearLayout panel = dialogPanel();
+        panel.addView(dialogTitle("App permissions"));
+        addPermissionStatus(panel, "Contacts", Manifest.permission.READ_CONTACTS);
+        addPermissionStatus(panel, "Microphone", Manifest.permission.RECORD_AUDIO);
+        TextView note = text("Contacts access helps VoiceDeck find people. The microphone is used only after you tap to speak.", 14, false);
+        note.setTextColor(COLOR_SECONDARY); panel.addView(note);
+        new AlertDialog.Builder(this).setView(panel).setPositiveButton("Close", null).show();
+    }
+
+    private void showLegalDialog() {
+        new AlertDialog.Builder(this).setTitle("Legal")
+                .setItems(new String[]{"Privacy Policy", "Terms & Conditions"}, (dialog, which) -> {
+                    if (which == 0) openLegalPage("https://ajinkyadube.com/apps/privacy.html");
+                    else openLegalPage("https://ajinkyadube.com/apps/terms.html");
+                }).setNegativeButton("Close", null).show();
     }
 
     /** Displays all locally saved aliases and their linked Android contacts. */
     private void showAliasManager() {
-        setCurrentScreen("aliases");
+        setSecondaryHeader(true);
         showingAliasManager = true;
         showingDictionaryManager = false;
         if (!contactsLoaded) loadContacts();
         content.removeAllViews();
         content.setGravity(Gravity.TOP);
-        content.setPadding(dp(2), dp(12), dp(2), dp(18));
+        content.setPadding(dp(2), dp(14), dp(2), dp(22));
+        statusText.setText("");
 
         TextView heading = centeredText("CONTACT ALIASES", 13, true, COLOR_SECONDARY);
         heading.setLetterSpacing(0.12f);
@@ -1621,6 +1639,8 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams loadingParams = new LinearLayout.LayoutParams(-1, -2);
         loadingParams.topMargin = dp(10);
         listCard.addView(loading, loadingParams);
+
+        // Return to Settings using the standard Android Back action.
 
         if (contactAliasRepository == null) {
             initializeSpeechDictionary();
@@ -1866,12 +1886,13 @@ public class MainActivity extends Activity {
     }
 
     private void showDictionaryManager(String selectedLanguage) {
-        setCurrentScreen("dictionary");
+        setSecondaryHeader(true);
         showingDictionaryManager = true;
         dictionaryManagerLanguage = selectedLanguage;
         content.removeAllViews();
         content.setGravity(Gravity.TOP);
-        content.setPadding(dp(2), dp(12), dp(2), dp(18));
+        content.setPadding(dp(2), dp(14), dp(2), dp(22));
+        statusText.setText("");
 
         TextView heading = centeredText("SPEECH DICTIONARY", 13, true, COLOR_SECONDARY);
         heading.setLetterSpacing(0.12f);
@@ -1931,6 +1952,8 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams loadingParams = new LinearLayout.LayoutParams(-1, -2);
         loadingParams.topMargin = dp(10);
         listCard.addView(loading, loadingParams);
+
+        // Return to Settings using the standard Android Back action.
 
         if (speechDictionaryRepository == null) {
             initializeSpeechDictionary();
@@ -2241,8 +2264,12 @@ public class MainActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
-        if (!"home".equals(currentScreen)) {
-            navigateBack();
+        if (showingDictionaryManager || showingAliasManager) {
+            showSettings();
+            return;
+        }
+        if (showingBack && !currentMatches.isEmpty()) {
+            flipContactCard(false);
             return;
         }
         super.onBackPressed();
