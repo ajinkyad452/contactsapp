@@ -1,4 +1,4 @@
-package com.voicedeck.app.speech;
+package com.ajinkyadube.voicedeck.speech;
 
 import org.junit.Test;
 

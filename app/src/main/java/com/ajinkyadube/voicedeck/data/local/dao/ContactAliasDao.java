@@ -1,4 +1,4 @@
-package com.voicedeck.app.data.local.dao;
+package com.ajinkyadube.voicedeck.data.local.dao;
 
 import androidx.room.Dao;
 import androidx.room.Insert;
@@ -6,7 +6,7 @@ import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Update;
 
-import com.voicedeck.app.data.local.entity.ContactAlias;
+import com.ajinkyadube.voicedeck.data.local.entity.ContactAlias;
 
 import java.util.List;
 

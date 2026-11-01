@@ -1,4 +1,4 @@
-package com.voicedeck.app.data.local;
+package com.ajinkyadube.voicedeck.data.local;
 
 import android.content.Context;
 
@@ -9,10 +9,10 @@ import androidx.room.RoomDatabase;
 import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
-import com.voicedeck.app.data.local.dao.ContactAliasDao;
-import com.voicedeck.app.data.local.dao.SpeechDictionaryDao;
-import com.voicedeck.app.data.local.entity.ContactAlias;
-import com.voicedeck.app.data.local.entity.SpeechDictionaryEntry;
+import com.ajinkyadube.voicedeck.data.local.dao.ContactAliasDao;
+import com.ajinkyadube.voicedeck.data.local.dao.SpeechDictionaryDao;
+import com.ajinkyadube.voicedeck.data.local.entity.ContactAlias;
+import com.ajinkyadube.voicedeck.data.local.entity.SpeechDictionaryEntry;
 
 @Database(
         entities = {SpeechDictionaryEntry.class, ContactAlias.class},

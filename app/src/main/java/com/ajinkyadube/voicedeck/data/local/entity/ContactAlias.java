@@ -1,4 +1,4 @@
-package com.voicedeck.app.data.local.entity;
+package com.ajinkyadube.voicedeck.data.local.entity;
 
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;

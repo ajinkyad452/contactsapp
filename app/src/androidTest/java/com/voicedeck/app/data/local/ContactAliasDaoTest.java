@@ -1,4 +1,4 @@
-package com.voicedeck.app.data.local;
+package com.ajinkyadube.voicedeck.data.local;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
@@ -7,12 +7,12 @@ import android.database.sqlite.SQLiteOpenHelper;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.voicedeck.app.ContactAliasMatcherMap;
-import com.voicedeck.app.ContactItem;
-import com.voicedeck.app.ContactNameMatcher;
-import com.voicedeck.app.data.local.dao.ContactAliasDao;
-import com.voicedeck.app.data.local.entity.ContactAlias;
-import com.voicedeck.app.speech.SpeechCommandFilter;
+import com.ajinkyadube.voicedeck.ContactAliasMatcherMap;
+import com.ajinkyadube.voicedeck.ContactItem;
+import com.ajinkyadube.voicedeck.ContactNameMatcher;
+import com.ajinkyadube.voicedeck.data.local.dao.ContactAliasDao;
+import com.ajinkyadube.voicedeck.data.local.entity.ContactAlias;
+import com.ajinkyadube.voicedeck.speech.SpeechCommandFilter;
 
 import org.junit.After;
 import org.junit.Before;

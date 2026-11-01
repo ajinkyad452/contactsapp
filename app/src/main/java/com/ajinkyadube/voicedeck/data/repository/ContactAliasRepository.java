@@ -1,8 +1,8 @@
-package com.voicedeck.app.data.repository;
+package com.ajinkyadube.voicedeck.data.repository;
 
-import com.voicedeck.app.data.local.VoiceDeckDatabase;
-import com.voicedeck.app.data.local.dao.ContactAliasDao;
-import com.voicedeck.app.data.local.entity.ContactAlias;
+import com.ajinkyadube.voicedeck.data.local.VoiceDeckDatabase;
+import com.ajinkyadube.voicedeck.data.local.dao.ContactAliasDao;
+import com.ajinkyadube.voicedeck.data.local.entity.ContactAlias;
 
 import java.util.List;
 import java.util.Objects;

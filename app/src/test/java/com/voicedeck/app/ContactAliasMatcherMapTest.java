@@ -1,6 +1,6 @@
-package com.voicedeck.app;
+package com.ajinkyadube.voicedeck;
 
-import com.voicedeck.app.data.local.entity.ContactAlias;
+import com.ajinkyadube.voicedeck.data.local.entity.ContactAlias;
 
 import org.junit.Test;
 

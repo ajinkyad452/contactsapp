@@ -1,4 +1,4 @@
-package com.voicedeck.app.data.local;
+package com.ajinkyadube.voicedeck.data.local;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
@@ -7,8 +7,8 @@ import android.database.sqlite.SQLiteOpenHelper;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.voicedeck.app.data.local.dao.SpeechDictionaryDao;
-import com.voicedeck.app.data.local.entity.SpeechDictionaryEntry;
+import com.ajinkyadube.voicedeck.data.local.dao.SpeechDictionaryDao;
+import com.ajinkyadube.voicedeck.data.local.entity.SpeechDictionaryEntry;
 
 import org.junit.After;
 import org.junit.Before;

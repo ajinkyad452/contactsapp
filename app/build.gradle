@@ -9,7 +9,7 @@ versionPropertiesFile.withInputStream {
 }
 
 android {
-    namespace 'com.voicedeck.app'
+    namespace 'com.ajinkyadube.voicedeck'
     compileSdk 35
 
     defaultConfig {

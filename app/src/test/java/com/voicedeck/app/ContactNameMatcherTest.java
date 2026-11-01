@@ -1,8 +1,8 @@
-package com.voicedeck.app;
+package com.ajinkyadube.voicedeck;
 
 import org.junit.Test;
 
-import com.voicedeck.app.speech.SpeechCommandFilter;
+import com.ajinkyadube.voicedeck.speech.SpeechCommandFilter;
 
 import java.util.Arrays;
 import java.util.Collections;

@@ -1,4 +1,4 @@
-package com.voicedeck.app;
+package com.ajinkyadube.voicedeck;
 
 import android.net.Uri;
 

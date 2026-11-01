@@ -1,6 +1,6 @@
-package com.voicedeck.app;
+package com.ajinkyadube.voicedeck;
 
-import com.voicedeck.app.speech.SpeechCommandFilter;
+import com.ajinkyadube.voicedeck.speech.SpeechCommandFilter;
 
 import java.text.Normalizer;
 import java.util.ArrayList;

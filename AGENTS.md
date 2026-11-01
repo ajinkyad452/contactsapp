@@ -11,7 +11,7 @@ These instructions apply to the whole repository. Read `README.md`, `CHANGELOG.m
 - Preserve supported language choices and defaults unless asked to change them.
 
 ## Engineering constraints
-- Package / namespace: `com.voicedeck.app`.
+- Package / namespace: `com.ajinkyadube.voicedeck`.
 - Use Java 17, Android Gradle Plugin 8.7.3, Gradle 8.9, compileSdk 35, minSdk 26, targetSdk 35 unless the user approves a version change.
 - Keep dependencies minimal. Explain any new dependency and why it is needed.
 - Use Room for app-managed persistence. Keep entities/DAOs under `data/local/`, repositories under `data/repository/`, and keep activities/speech matching away from DAO access.

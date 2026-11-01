@@ -1,4 +1,4 @@
-package com.voicedeck.app;
+package com.ajinkyadube.voicedeck;
 
 import android.Manifest;
 import android.app.Activity;
@@ -47,13 +47,13 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 
-import com.voicedeck.app.data.local.VoiceDeckDatabase;
-import com.voicedeck.app.data.local.entity.ContactAlias;
-import com.voicedeck.app.data.local.entity.SpeechDictionaryEntry;
-import com.voicedeck.app.data.repository.ContactAliasRepository;
-import com.voicedeck.app.data.repository.SpeechDictionaryRepository;
-import com.voicedeck.app.speech.SpeechCommandFilter;
-import com.voicedeck.app.speech.SpeechDictionaryDefaults;
+import com.ajinkyadube.voicedeck.data.local.VoiceDeckDatabase;
+import com.ajinkyadube.voicedeck.data.local.entity.ContactAlias;
+import com.ajinkyadube.voicedeck.data.local.entity.SpeechDictionaryEntry;
+import com.ajinkyadube.voicedeck.data.repository.ContactAliasRepository;
+import com.ajinkyadube.voicedeck.data.repository.SpeechDictionaryRepository;
+import com.ajinkyadube.voicedeck.speech.SpeechCommandFilter;
+import com.ajinkyadube.voicedeck.speech.SpeechDictionaryDefaults;
 
 import java.util.ArrayList;
 import java.util.Collections;

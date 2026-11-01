@@ -1,4 +1,4 @@
-package com.voicedeck.app.speech;
+package com.ajinkyadube.voicedeck.speech;
 
 import java.text.Normalizer;
 import java.util.ArrayList;

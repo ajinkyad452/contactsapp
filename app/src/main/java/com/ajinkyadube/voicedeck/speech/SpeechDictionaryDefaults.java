@@ -1,6 +1,6 @@
-package com.voicedeck.app.speech;
+package com.ajinkyadube.voicedeck.speech;
 
-import com.voicedeck.app.data.local.entity.SpeechDictionaryEntry;
+import com.ajinkyadube.voicedeck.data.local.entity.SpeechDictionaryEntry;
 
 import java.util.ArrayList;
 import java.util.Arrays;

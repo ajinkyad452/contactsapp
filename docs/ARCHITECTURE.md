@@ -10,7 +10,7 @@
 - AndroidX Room 2.8.5 (Java annotation processor)
 
 ## Package
-`com.voicedeck.app`
+`com.ajinkyadube.voicedeck`
 
 ## Main source files
 - `app/src/main/java/com/voicedeck/app/MainActivity.java` — main UI, permissions, speech flow, contact lookup, card display and actions.
