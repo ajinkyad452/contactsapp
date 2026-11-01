@@ -17,3 +17,5 @@ This folder contains the maintained product, engineering, testing, privacy, and 
 Project history remains in the repository root: `CHANGELOG.md` and `DEBUGGING_LOG.md`.
 
 Documentation describes the supplied v1.4 source archive. It does not imply that a build or device test has passed.
+
+- [Repository Privacy and Secret-Prevention Checklist](REPOSITORY_PRIVACY_CHECKLIST.md) — required pre-commit and pre-push review.

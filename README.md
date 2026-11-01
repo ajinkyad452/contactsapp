@@ -77,3 +77,6 @@ Speech recognition errors now show a specific message for silence/timeouts, miss
 
 ## AI-assisted development
 AI coding tools must follow `AGENTS.md`. Treat `CHANGELOG.md` and `DEBUGGING_LOG.md` as project history: append new findings and preserve prior entries. Never infer that a build or device test passed without running it.
+
+## Repository privacy and security
+Before contributing or pushing changes, follow the [Repository Privacy and Secret-Prevention Checklist](docs/REPOSITORY_PRIVACY_CHECKLIST.md).

@@ -27,7 +27,9 @@ These instructions apply to the whole repository. Read `README.md`, `CHANGELOG.m
 - Update `README.md` when setup, behavior, dependencies, permissions, or testing instructions change.
 - Preserve historical entries; append corrections rather than silently rewriting history.
 - Do not bump app `versionCode` / `versionName` unless preparing a release or explicitly asked.
-- Never include signing keys, passwords, tokens, local SDK paths, or personal contact data in commits or archives.
+- Never include signing keys, passwords, tokens, local SDK paths, real contact data, transcripts, recordings, device/account identifiers, or personal details in commits or archives.
+- Before committing or pushing, follow `docs/REPOSITORY_PRIVACY_CHECKLIST.md`; inspect staged and untracked files rather than relying on `.gitignore`.
+- Use only clearly synthetic, non-dialable test data. Do not copy real address-book entries into fixtures, logs, screenshots, or issue reports.
 
 ## Validation
 - Prefer building with the project Gradle wrapper once it is available: `./gradlew :app:assembleDebug`.

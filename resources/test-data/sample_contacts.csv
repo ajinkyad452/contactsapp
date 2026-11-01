@@ -1,3 +1,3 @@
 display_name,phone,email,company,designation,birthday,address
-Aarav Kulkarni,+919876500001,aarav.example@example.test,Sample Works,Manager,1990-05-12,"Pune, Maharashtra"
-Meera Shah,+919876500002,meera.example@example.test,Demo Studio,Designer,1992-09-21,"Mumbai, Maharashtra"
+Aarav Kulkarni,SAMPLE-NUMBER-001,aarav.example@example.test,Sample Works,Manager,1990-05-12,Example City
+Meera Shah,SAMPLE-NUMBER-002,meera.example@example.test,Demo Studio,Designer,1992-09-21,Example City
