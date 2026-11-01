@@ -35,3 +35,14 @@
 - Do not transmit or log contact contents, phone numbers, recognized transcripts, or other personal contact data.
 - Do not add background microphone capture.
 - Keep permission requests tied to an explicit user action.
+
+
+## Planned local data architecture (not implemented)
+
+The current v1.4.0 app does not include a local application database. Contacts continue to come from Android's Contacts Provider, and the current `ContactNameMatcher` accepts an optional in-memory alias map while using a hardcoded command-word set.
+
+For future app-managed persistent data, the accepted direction is AndroidX Room (SQLite underneath), with database entities and DAOs under `data/local/`, repositories under `data/repository/`, and speech processing under `speech/`. The first database increment is limited to a `speech_dictionary` table. Later candidates include `contact_aliases` (provider IDs only), `contact_recordings`, and `voice_preferences`; `speech_patterns` and `recognition_history` remain conditional on a clear need.
+
+The speech layer must not access Room directly. Database operations must run off the main thread, schema changes must use versioned migrations, and all app-managed data remains local. Full legitimate contact names must be checked before dictionary filtering so that a greeting word which is also part of a contact name (for example, “Hello Tunes”) is not stripped before matching.
+
+This is a future architecture plan, not a description of existing classes or dependencies. No Room dependency or database implementation is included in the current source. See [ADR-004](decisions/ADR-004-room-local-data-layer.md) and the [development roadmap](ROADMAP.md) for the decision and milestones.

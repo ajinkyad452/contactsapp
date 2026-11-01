@@ -57,7 +57,7 @@ Speech recognition errors now show a specific message for silence/timeouts, miss
 - If the speech-recognition service itself reports insufficient permissions while VoiceDeck's permission is granted, the app explains that the configured speech-recognition provider may also need microphone access.
 
 ## Project documentation and resources
-- Product, UI, architecture, privacy, development, testing and release guidance: [`docs/`](docs/README.md).
+- Product, UI, architecture, roadmap, privacy, development, testing and release guidance: [`docs/`](docs/README.md).
 - Design baseline, branding asset location and synthetic test contacts: [`resources/`](resources/README.md).
 - Android app version metadata: [`version.properties`](version.properties).
 - Decision records: [`docs/decisions/`](docs/decisions/README.md).

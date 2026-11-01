@@ -11,7 +11,8 @@ This folder contains the maintained product, engineering, testing, privacy, and 
 6. [Permissions and privacy](PERMISSIONS_AND_PRIVACY.md) — data access and permission expectations.
 7. [Troubleshooting](TROUBLESHOOTING.md) — known speech-recognition diagnostics.
 8. [Release process](RELEASE_PROCESS.md) — versioning and release checklist.
-9. [Decision records](decisions/README.md) — decisions that should not be changed casually.
+9. [Development roadmap](ROADMAP.md) — current baseline and planned milestones.
+10. [Decision records](decisions/README.md) — decisions that should not be changed casually.
 
 Project history remains in the repository root: `CHANGELOG.md` and `DEBUGGING_LOG.md`.
 
