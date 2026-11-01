@@ -1,0 +1,181 @@
+package com.voicedeck.app;
+
+import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+
+public class ContactNameMatcherTest {
+
+    @Test
+    public void matchesCompleteNameInsideCommandSentence() {
+        ContactItem john = contact(1, "John Smith");
+
+        ContactNameMatcher.Result result = matcher(john).resolve("Please call John Smith");
+
+        assertMatch(result, john);
+    }
+
+    @Test
+    public void preservesGreetingWordWhenItIsPartOfCompleteContactName() {
+        ContactItem helloTunes = contact(1, "Hello Tunes");
+
+        ContactNameMatcher.Result result = matcher(helloTunes).resolve("Please call Hello Tunes");
+
+        assertMatch(result, helloTunes);
+    }
+
+    @Test
+    public void greetingAloneDoesNotPartiallyMatchMultiWordContact() {
+        ContactItem helloTunes = contact(1, "Hello Tunes");
+
+        ContactNameMatcher.Result result = matcher(helloTunes).resolve("hello");
+
+        assertNoMatch(result);
+    }
+
+    @Test
+    public void recognizedGreetingDoesNotPartiallyMatchMultiWordContact() {
+        ContactItem helloTunes = contact(1, "Hello Tunes");
+
+        ContactNameMatcher.Result result = matcher(helloTunes).resolve("hellooo");
+
+        assertNoMatch(result);
+    }
+
+    @Test
+    public void exactSingleWordContactCanStillBeMatchedWhenWordIsGreeting() {
+        ContactItem hello = contact(1, "Hello");
+
+        ContactNameMatcher.Result result = matcher(hello).resolve("hello");
+
+        assertMatch(result, hello);
+    }
+
+    @Test
+    public void fullNameMatchTakesPriorityOverAnotherContactsPartialToken() {
+        ContactItem johnSmith = contact(1, "John Smith");
+        ContactItem smith = contact(2, "Smith");
+
+        ContactNameMatcher.Result result = matcher(johnSmith, smith).resolve("Call John Smith");
+
+        assertMatch(result, johnSmith);
+    }
+
+    @Test
+    public void supportsFirstNamePartialMatch() {
+        ContactItem johnSmith = contact(1, "John Smith");
+
+        ContactNameMatcher.Result result = matcher(johnSmith).resolve("Call John");
+
+        assertMatch(result, johnSmith);
+    }
+
+    @Test
+    public void supportsSurnamePartialMatch() {
+        ContactItem johnSmith = contact(1, "John Smith");
+
+        ContactNameMatcher.Result result = matcher(johnSmith).resolve("Call Smith");
+
+        assertMatch(result, johnSmith);
+    }
+
+    @Test
+    public void reportsAmbiguousFirstNameInsteadOfChoosing() {
+        ContactItem johnSmith = contact(1, "John Smith");
+        ContactItem johnDoe = contact(2, "John Doe");
+
+        ContactNameMatcher.Result result = matcher(johnSmith, johnDoe).resolve("Call John");
+
+        assertEquals(ContactNameMatcher.Status.MULTIPLE_MATCHES, result.getStatus());
+        assertEquals(2, result.getMatches().size());
+    }
+
+    @Test
+    public void reportsAmbiguousSurnameInsteadOfChoosing() {
+        ContactItem johnSmith = contact(1, "John Smith");
+        ContactItem janeSmith = contact(2, "Jane Smith");
+
+        ContactNameMatcher.Result result = matcher(johnSmith, janeSmith).resolve("Call Smith");
+
+        assertEquals(ContactNameMatcher.Status.MULTIPLE_MATCHES, result.getStatus());
+        assertEquals(2, result.getMatches().size());
+    }
+
+    @Test
+    public void commandOnlyInputReturnsNoMatch() {
+        ContactItem john = contact(1, "John Smith");
+
+        ContactNameMatcher.Result result = matcher(john).resolve("Please call my contact");
+
+        assertNoMatch(result);
+    }
+
+    @Test
+    public void emptyAndNullInputReturnNoMatch() {
+        ContactItem john = contact(1, "John Smith");
+        ContactNameMatcher matcher = matcher(john);
+
+        assertNoMatch(matcher.resolve("  !!!  "));
+        assertNoMatch(matcher.resolve(null));
+    }
+
+    @Test
+    public void matchesConfiguredAliasAsCompletePhrase() {
+        ContactItem john = contact(1, "John Smith");
+        Map<Long, List<String>> aliases = new HashMap<>();
+        aliases.put(john.id, Collections.singletonList("Johnny Boy"));
+        ContactNameMatcher matcher = new ContactNameMatcher(
+                Collections.singletonList(john), aliases);
+
+        ContactNameMatcher.Result result = matcher.resolve("Please call Johnny Boy");
+
+        assertMatch(result, john);
+    }
+
+    @Test
+    public void normalizesAccentsAndPunctuation() {
+        ContactItem jose = contact(1, "José O'Neil");
+
+        ContactNameMatcher.Result result = matcher(jose).resolve("Call Jose O Neil!");
+
+        assertMatch(result, jose);
+    }
+
+    @Test
+    public void exactContactNameMadeOfFilterWordsIsStillMatchable() {
+        ContactItem callMe = contact(1, "Call Me");
+
+        ContactNameMatcher.Result result = matcher(callMe).resolve("Call Me");
+
+        assertMatch(result, callMe);
+    }
+
+    private static ContactNameMatcher matcher(ContactItem... contacts) {
+        return new ContactNameMatcher(Arrays.asList(contacts), Collections.emptyMap());
+    }
+
+    private static ContactItem contact(long id, String name) {
+        ContactItem contact = new ContactItem();
+        contact.id = id;
+        contact.name = name;
+        return contact;
+    }
+
+    private static void assertMatch(ContactNameMatcher.Result result, ContactItem expected) {
+        assertEquals(ContactNameMatcher.Status.MATCH_FOUND, result.getStatus());
+        assertEquals(1, result.getMatches().size());
+        assertSame(expected, result.getMatches().get(0));
+    }
+
+    private static void assertNoMatch(ContactNameMatcher.Result result) {
+        assertEquals(ContactNameMatcher.Status.NO_MATCH, result.getStatus());
+        assertEquals(0, result.getMatches().size());
+    }
+}

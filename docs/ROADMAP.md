@@ -26,16 +26,17 @@ This roadmap separates the current implemented baseline from planned work. A lis
 
 ### Milestone 2 — Harden contact matching
 
-**Status:** Planned — next implementation milestone
+**Status:** Implemented in source; Android Gradle/device validation pending
 
-Before adding database dependencies, improve and test the existing matching behavior:
-
-- [ ] Check legitimate complete contact names/aliases before removing command or greeting words.
-- [ ] Prevent greeting words inside real contact names (for example, “Hello Tunes”) from being stripped before a full-name match.
-- [ ] Return `NO_MATCH` when filtering leaves no meaningful candidate tokens; do not guess.
-- [ ] Preserve the existing three result states and multiple-match disambiguation behavior.
-- [ ] Add focused unit tests for command words, greetings, full names, partial names, ambiguity, empty input, and false-positive cases.
-- [ ] Keep speech-recognition provider changes and AI intent understanding out of this milestone.
+- [x] Check legitimate complete contact names/aliases against the original recognized phrase before filtering command or greeting words.
+- [x] Prevent greeting words inside real contact names (for example, “Hello Tunes”) from being stripped before a full-name match.
+- [x] Return `NO_MATCH` when filtering leaves no meaningful partial-match candidate tokens and no complete phrase matches.
+- [x] Preserve the existing three result states and multiple-match disambiguation behavior.
+- [x] Add focused JVM regression tests for command words, greetings, full names, partial names, ambiguity, empty input, aliases, and false-positive cases.
+- [x] Remove full and partial speech-recognition transcript logging from Logcat.
+- [ ] Run `:app:testDebugUnitTest` and a full Android build on the development machine.
+- [ ] Verify voice behavior on Pixel 4a (Android 13 / API 33) and Pixel 7 Pro (Android 17 / API 37).
+- [x] Keep speech-recognition provider changes and AI intent understanding out of this milestone.
 
 ### Milestone 3 — Introduce the Room foundation
 

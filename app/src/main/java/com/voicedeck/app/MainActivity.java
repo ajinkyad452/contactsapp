@@ -450,19 +450,11 @@ public class MainActivity extends Activity {
                         statusText.setText("No speech recognised. Try again.");
                     }
 
-                    if (matches != null) {
-                        for (String result : matches) {
-                            android.util.Log.d("VoiceDeckSpeech", "HEARD: " + result);
-                        }
-                    }
                 }
                 @Override public void onPartialResults(Bundle partialResults) {
                     ArrayList<String> p = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                     if (p != null && !p.isEmpty() && heardText != null) heardText.setText(p.get(0));
 
-                    if (p != null && !p.isEmpty()) {
-                        android.util.Log.d("VoiceDeckSpeech", "PARTIAL: " + p.get(0));
-                    }
                 }
                 @Override public void onEvent(int eventType, Bundle params) {}
             });

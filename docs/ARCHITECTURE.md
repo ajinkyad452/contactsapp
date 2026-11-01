@@ -39,7 +39,7 @@
 
 ## Planned local data architecture (not implemented)
 
-The current v1.4.0 app does not include a local application database. Contacts continue to come from Android's Contacts Provider, and the current `ContactNameMatcher` accepts an optional in-memory alias map while using a hardcoded command-word set.
+The current v1.4.0 app does not include a local application database. Contacts continue to come from Android's Contacts Provider, and the current `ContactNameMatcher` accepts an optional in-memory alias map. It checks complete contact-name/alias phrases against the original recognized phrase, then uses a hardcoded command/greeting filter only for partial-token matching. The filter remains temporary until the planned Room-backed speech dictionary is implemented.
 
 For future app-managed persistent data, the accepted direction is AndroidX Room (SQLite underneath), with database entities and DAOs under `data/local/`, repositories under `data/repository/`, and speech processing under `speech/`. The first database increment is limited to a `speech_dictionary` table. Later candidates include `contact_aliases` (provider IDs only), `contact_recordings`, and `voice_preferences`; `speech_patterns` and `recognition_history` remain conditional on a clear need.
 

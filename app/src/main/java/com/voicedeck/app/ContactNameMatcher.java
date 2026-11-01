@@ -43,7 +43,7 @@ public final class ContactNameMatcher {
         }
     }
 
-    private static final Set<String> COMMAND_WORDS =
+    private static final Set<String> FILTER_WORDS =
         new HashSet<>(Arrays.asList(
                 "call",
                 "contact",
@@ -54,6 +54,13 @@ public final class ContactNameMatcher {
                 "please",
                 "hey",
                 "hi",
+                "hello",
+                "good",
+                "morning",
+                "afternoon",
+                "evening",
+                "namaste",
+                "namaskar",
                 "find",
                 "search",
                 "show",
@@ -112,17 +119,20 @@ public final class ContactNameMatcher {
     }
 
     public Result resolve(String spokenText) {
-        List<String> spokenTokens = removeCommandWords(tokenize(spokenText));
-        if (spokenTokens.isEmpty() || index.isEmpty()) {
+        // Preserve the original words for complete-name checks. A legitimate contact
+        // may contain a word that is also a command or greeting (for example, "Hello Tunes").
+        List<String> originalTokens = tokenize(spokenText);
+        if (originalTokens.isEmpty() || index.isEmpty()) {
             return new Result(Status.NO_MATCH, Collections.emptyList());
         }
 
-        Set<String> spokenTokenSet = new HashSet<>(spokenTokens);
+        // Only remove command/greeting words for the weaker partial-token fallback.
+        Set<String> candidateTokenSet = new HashSet<>(removeFilterWords(originalTokens));
         Map<ContactItem, Integer> scores = new HashMap<>();
         int highestScore = 0;
 
         for (IndexedContact entry : index) {
-            int score = score(entry, spokenTokens, spokenTokenSet);
+            int score = score(entry, originalTokens, candidateTokenSet);
             if (score <= 0) continue;
 
             scores.put(entry.contact, score);
@@ -149,22 +159,26 @@ public final class ContactNameMatcher {
     }
 
     private static int score(IndexedContact entry,
-                             List<String> spokenTokens,
-                             Set<String> spokenTokenSet) {
+                             List<String> originalTokens,
+                             Set<String> candidateTokenSet) {
         int bestScore = 0;
         int matchedNameTokens = 0;
 
         // A complete first+last name or alias is stronger than a single token.
         for (List<String> phrase : entry.namePhrases) {
-            if (containsPhrase(spokenTokens, phrase)) {
+            if (containsPhrase(originalTokens, phrase)) {
                 int phraseScore = 1000 + (phrase.size() * 20);
                 bestScore = Math.max(bestScore, phraseScore);
             }
         }
 
-        // First names and surnames can independently identify a contact.
+        // First names and surnames can independently identify a contact, but only
+        // after command/greeting words have been removed. An empty candidate list
+        // therefore cannot accidentally match a greeting token such as "hello".
+        if (candidateTokenSet.isEmpty()) return bestScore;
+
         for (String nameToken : entry.nameTokens) {
-            if (spokenTokenSet.contains(nameToken)) matchedNameTokens++;
+            if (candidateTokenSet.contains(nameToken)) matchedNameTokens++;
         }
 
         if (matchedNameTokens > 0) {
@@ -191,11 +205,11 @@ public final class ContactNameMatcher {
         return false;
     }
 
-    private static List<String> removeCommandWords(List<String> tokens) {
+    private static List<String> removeFilterWords(List<String> tokens) {
         List<String> filteredTokens = new ArrayList<>();
 
         for (String token : tokens) {
-            if (!COMMAND_WORDS.contains(token)) {
+            if (!FILTER_WORDS.contains(token)) {
                 filteredTokens.add(token);
             }
         }

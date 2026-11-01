@@ -80,3 +80,8 @@ AI coding tools must follow `AGENTS.md`. Treat `CHANGELOG.md` and `DEBUGGING_LOG
 
 ## Repository privacy and security
 Before contributing or pushing changes, follow the [Repository Privacy and Secret-Prevention Checklist](docs/REPOSITORY_PRIVACY_CHECKLIST.md).
+
+
+### Contact matching tests
+
+Run the local JVM regression tests with `./gradlew :app:testDebugUnitTest`. The tests cover complete-name matching before greeting/command filtering and ambiguity safeguards.

@@ -36,3 +36,16 @@ A full Android/Gradle build was not run. The supplied ZIP does not contain `grad
 ## Files
 - `app/src/main/java/com/voicedeck/app/MainActivity.java` — updated
 - `app/src/main/java/com/voicedeck/app/ContactNameMatcher.java` — new
+
+
+## Matching safeguards update — 2026-11-01
+
+- Complete contact-name and alias phrases are now checked against the original normalized recognition tokens before any command/greeting filtering occurs.
+- The command/greeting filter is applied only to partial first-name/surname token matching. This preserves complete names such as “Hello Tunes” while preventing a greeting-only “hello” result from selecting that multi-word contact.
+- A single-word contact named “Hello” remains matchable as a complete phrase.
+- If filtering removes every candidate token and no complete phrase matched, the result is `NO_MATCH`.
+- Existing `MATCH_FOUND`, `MULTIPLE_MATCHES`, and `NO_MATCH` outcomes remain unchanged.
+- Added 15 JVM regression tests in `app/src/test/java/com/voicedeck/app/ContactNameMatcherTest.java`.
+- Removed full and partial recognition transcript writes to Logcat.
+- JUnit 4.13.2 is added as a test-only dependency; no runtime dependency or Android permission was added.
+- The 15 test methods compiled and passed using a local JVM harness with lightweight Android/JUnit stubs. The Android Gradle test task and full app build remain unverified because this source archive has no Gradle wrapper and no system Gradle is installed in the validation environment.
