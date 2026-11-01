@@ -14,3 +14,9 @@
 - Update `CHANGELOG.md` for user-visible app changes and `DEBUGGING_LOG.md` for device-specific findings.
 - `version.properties` is the source of Android version metadata; do not hardcode a second version in Gradle.
 - Do not claim a build/device test passed unless it was run.
+
+## Privacy and secret prevention
+- Read [`docs/REPOSITORY_PRIVACY_CHECKLIST.md`](docs/REPOSITORY_PRIVACY_CHECKLIST.md) before committing or pushing.
+- Use only clearly synthetic test fixtures. Never use real contacts, phone numbers, addresses, recordings, transcripts, or device/account identifiers.
+- Keep credentials and signing material outside Git; `.gitignore` is a safety net, not a substitute for reviewing staged files.
+- Review the complete staged diff and inspect binary files before every push.

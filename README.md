@@ -57,7 +57,7 @@ Speech recognition errors now show a specific message for silence/timeouts, miss
 - If the speech-recognition service itself reports insufficient permissions while VoiceDeck's permission is granted, the app explains that the configured speech-recognition provider may also need microphone access.
 
 ## Project documentation and resources
-- Product, UI, architecture, privacy, development, testing and release guidance: [`docs/`](docs/README.md).
+- Product, UI, architecture, roadmap, privacy, development, testing and release guidance: [`docs/`](docs/README.md).
 - Design baseline, branding asset location and synthetic test contacts: [`resources/`](resources/README.md).
 - Android app version metadata: [`version.properties`](version.properties).
 - Decision records: [`docs/decisions/`](docs/decisions/README.md).
@@ -77,3 +77,11 @@ Speech recognition errors now show a specific message for silence/timeouts, miss
 
 ## AI-assisted development
 AI coding tools must follow `AGENTS.md`. Treat `CHANGELOG.md` and `DEBUGGING_LOG.md` as project history: append new findings and preserve prior entries. Never infer that a build or device test passed without running it.
+
+## Repository privacy and security
+Before contributing or pushing changes, follow the [Repository Privacy and Secret-Prevention Checklist](docs/REPOSITORY_PRIVACY_CHECKLIST.md).
+
+
+### Contact matching tests
+
+Run the local JVM regression tests with `./gradlew :app:testDebugUnitTest`. The tests cover complete-name matching before greeting/command filtering and ambiguity safeguards.

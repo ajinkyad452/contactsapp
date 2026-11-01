@@ -7,6 +7,15 @@ The project history references:
 
 Record exact device, Android version/API, app version, steps, and result for each test. Device availability is not assumed.
 
+## Local JVM unit tests
+Run the contact-matching regression suite from the project root:
+
+```bash
+./gradlew :app:testDebugUnitTest
+```
+
+The suite is in `app/src/test/java/com/voicedeck/app/ContactNameMatcherTest.java` and covers complete-name-before-filtering behavior, greeting collisions, partial matches, ambiguity, aliases, empty input, and normalization.
+
 ## Functional checklist
 - [ ] First launch and permission explanation.
 - [ ] Contacts permission granted; contacts load.
@@ -16,8 +25,9 @@ Record exact device, Android version/API, app version, steps, and result for eac
 - [ ] Marathi (`mr-IN`) recognition.
 - [ ] Hindi (`hi-IN`) recognition.
 - [ ] Silence, timeout, and speech-service error messages.
-- [ ] Exact-name match.
+- [ ] Exact-name match, including names containing command/greeting words (for example, “Hello Tunes”).
 - [ ] Partial-name match.
+- [ ] Greeting-only input does not match a multi-word contact just because one token overlaps.
 - [ ] Multiple-match disambiguation.
 - [ ] Manual search fallback.
 - [ ] Contact without a photo.

@@ -38,3 +38,28 @@ Strong lead: the Pixel 7 Pro's Google Speech Services microphone permission was 
 
 ### Safety / privacy note
 Allowing microphone access only while the speech service is in use does not itself mean continuous recording. Android's microphone privacy controls and indicator remain available. Avoid using permanent or unrestricted permission settings for this diagnostic.
+
+
+## 2026-11-01 — Contact matching greeting false positive
+
+### Observed behaviour
+- A spoken greeting recognized as `hello` could partially match a multi-word contact such as `Hello Tunes`, even when the user had not said the full contact name.
+
+### Root cause
+- `ContactNameMatcher.resolve()` removed command words before checking complete contact-name phrases.
+- The greeting `hello` was not in the existing filter list, so it remained eligible as a partial token match.
+
+### Code change
+- Preserve the original normalized tokens for complete contact-name and alias phrase matching.
+- Apply command/greeting filtering only to the weaker first-name/surname token fallback.
+- Add `hello` and common greeting terms to the current hardcoded filter set. The list remains temporary until the planned Room-backed speech dictionary is implemented.
+- If filtering leaves no partial-match candidate tokens, only a complete phrase match can succeed; otherwise return `NO_MATCH`.
+- Remove Logcat output of full and partial speech-recognition transcripts. The recognized text remains available to the existing in-app flow but is no longer written to logs.
+
+### Regression tests
+- Added `ContactNameMatcherTest` with 15 cases covering complete names, greeting collisions, single-word greeting names, partial names, ambiguity, command-only and empty input, aliases, and normalization.
+- The matcher and test source were compiled and executed with a local JVM test harness: all 15 tests passed. This harness used lightweight Android/JUnit stubs and is not a substitute for the Android Gradle test task.
+
+### Not verified
+- The project ZIP does not include `gradlew`, and no system Gradle installation is available in this environment. `./gradlew :app:testDebugUnitTest` and a full Android build were not run.
+- Device voice-recognition behavior has not been retested on physical devices.

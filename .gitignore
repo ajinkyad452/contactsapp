@@ -24,3 +24,26 @@ Thumbs.db
 *.swp
 *.swo
 *~
+*.log
+# Environment files and local secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.key
+*.asc
+*.mobileprovision
+secrets/
+private/
+
+# Local databases, exports, backups, and diagnostic artifacts
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+*.backup
+*.dump
+*.trace
+*.heapdump

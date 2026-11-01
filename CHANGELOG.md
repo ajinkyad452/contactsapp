@@ -1,5 +1,11 @@
 # VoiceDeck Changelog
 
+## Unreleased
+- Check complete contact names and aliases against the original recognized phrase before filtering command/greeting words for partial-token matching.
+- Add greeting terms to the partial-match filter and return `NO_MATCH` when filtering leaves no candidate tokens.
+- Add JVM regression tests for full names, greeting collisions, partial matches, ambiguity, aliases, and normalization.
+- Stop writing full and partial speech-recognition transcripts to Logcat.
+
 This file tracks app-code versions and project-level changes. Device-specific findings that do not change app code are recorded in `DEBUGGING_LOG.md`.
 
 ## v1.4 — Microphone permission recovery

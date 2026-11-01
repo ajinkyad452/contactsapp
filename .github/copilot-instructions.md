@@ -6,3 +6,5 @@ Follow the repository-wide instructions in [`../AGENTS.md`](../AGENTS.md). In pa
 - Read and update `CHANGELOG.md`, `DEBUGGING_LOG.md`, and `README.md` as required by AGENTS.md.
 - Do not claim builds or device tests passed unless they were actually run.
 - Do not log personal contact data, phone numbers, or speech transcripts.
+
+- Before proposing or preparing a commit, follow [`docs/REPOSITORY_PRIVACY_CHECKLIST.md`](../docs/REPOSITORY_PRIVACY_CHECKLIST.md). Never introduce real contact data, transcripts, recordings, personal identifiers, credentials, or signing material.
