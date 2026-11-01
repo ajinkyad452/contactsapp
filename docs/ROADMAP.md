@@ -105,6 +105,22 @@ This roadmap separates the current implemented baseline from planned work. A lis
 - [ ] Run `:app:testDebugUnitTest`, `:app:assembleDebug`, and `:app:connectedDebugAndroidTest`.
 - [ ] Verify alias matches and duplicate-alias chooser behavior on a physical device after aliases can be added in Milestone 6C.
 
+### Milestone 6C — Voice-led alias creation
+
+**Status:** Implemented in source; build and physical-device validation pending
+
+- [x] On a voice-search `NO_MATCH`, remove active-language command/greeting/filler terms to derive the proposed alias.
+- [x] Ask the user to choose the intended contact from the existing Contacts Provider list.
+- [x] Provide an in-dialog contact search to make large address books practical.
+- [x] Ask for explicit confirmation before saving the alias.
+- [x] Save aliases asynchronously through `ContactAliasRepository` into the existing Room table.
+- [x] Store the active recognition language and normalized alias; do not modify Android contact records.
+- [x] Reload the in-memory alias matcher after a successful save.
+- [x] Keep manual-search no-match behavior unchanged; alias creation is offered only after voice search.
+- [ ] Run `:app:testDebugUnitTest`, `:app:assembleDebug`, and `:app:connectedDebugAndroidTest`.
+- [ ] On a physical device, test voice no-match → contact selection → confirmation → alias save → second voice search resolves the contact.
+- [ ] Verify Cancel / No paths do not write data, duplicate alias for the same contact is handled safely, and the same alias on another contact remains ambiguous.
+
 ## Later feature areas
 
 | Feature | Planned data approach | Status |

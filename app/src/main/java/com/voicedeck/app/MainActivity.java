@@ -24,15 +24,19 @@ import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.text.InputType;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.ScrollView;
@@ -81,6 +85,8 @@ public class MainActivity extends Activity {
     private LinearLayout root;
     private LinearLayout content;
     private TextView statusText;
+    private TextView aliasSetupLink;
+    private String pendingAliasForSetup;
     private TextView heardText;
     private SpeechRecognizer speechRecognizer;
     private String language = "en-IN";
@@ -102,6 +108,7 @@ public class MainActivity extends Activity {
     private boolean showingDictionaryManager;
     private String dictionaryManagerLanguage = "en-IN";
     private String pendingContactQuery;
+    private boolean pendingAliasCreationAllowed;
     private List<ContactItem> currentMatches = new ArrayList<>();
     private int currentIndex = 0;
     private boolean showingBack = false;
@@ -164,6 +171,23 @@ public class MainActivity extends Activity {
         statusText.setGravity(Gravity.CENTER);
         statusText.setPadding(dp(8), dp(8), dp(8), dp(8));
         root.addView(statusText);
+
+        aliasSetupLink = centeredText(
+                "Would you like to save this as a nickname for an existing contact?\nSelect a contact to link this nickname.",
+                15, true, COLOR_PRIMARY);
+        aliasSetupLink.setPadding(dp(18), dp(4), dp(18), dp(14));
+        aliasSetupLink.setVisibility(View.GONE);
+        aliasSetupLink.setClickable(true);
+        aliasSetupLink.setFocusable(true);
+        aliasSetupLink.setPaintFlags(aliasSetupLink.getPaintFlags()
+                | android.graphics.Paint.UNDERLINE_TEXT_FLAG);
+        aliasSetupLink.setContentDescription(
+                "Save this unmatched name as a nickname for an existing contact");
+        aliasSetupLink.setOnClickListener(v -> {
+            String alias = pendingAliasForSetup;
+            if (alias != null && !alias.trim().isEmpty()) showAliasContactPicker(alias);
+        });
+        root.addView(aliasSetupLink);
 
         setContentView(root);
         showListeningPrompt(false);
@@ -245,6 +269,8 @@ public class MainActivity extends Activity {
     }
 
     private void showListeningPrompt(boolean listening) {
+        if (aliasSetupLink != null) aliasSetupLink.setVisibility(View.GONE);
+        pendingAliasForSetup = null;
         content.removeAllViews();
         content.setGravity(Gravity.CENTER_HORIZONTAL);
         content.setPadding(dp(2), dp(14), dp(2), dp(18));
@@ -542,7 +568,7 @@ public class MainActivity extends Activity {
                 @Override public void onResults(Bundle results) {
                     finishListeningSession();
                     ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                    if (matches != null && !matches.isEmpty()) findContact(matches.get(0));
+                    if (matches != null && !matches.isEmpty()) findContact(matches.get(0), true);
                     else {
                         showListeningPrompt(false);
                         statusText.setText("No speech recognised. Try again.");
@@ -705,26 +731,30 @@ public class MainActivity extends Activity {
         if (pendingContactQuery == null || !speechDictionaryReady
                 || !contactMatcherReady || !language.equals(contactMatcherLanguage)) return;
         String query = pendingContactQuery;
+        boolean allowAliasCreation = pendingAliasCreationAllowed;
         pendingContactQuery = null;
-        findContactNow(query);
+        pendingAliasCreationAllowed = false;
+        findContactNow(query, allowAliasCreation);
     }
 
-    private void findContact(String spoken) {
+    private void findContact(String spoken, boolean allowAliasCreation) {
         if (!speechDictionaryReady) {
             // Speech recognition can finish before the local Room dictionary loads.
             // Hold only the latest query and resume it when loading completes.
             pendingContactQuery = spoken;
+            pendingAliasCreationAllowed = allowAliasCreation;
             statusText.setText("Preparing local voice dictionary…");
             return;
         }
-        findContactNow(spoken);
+        findContactNow(spoken, allowAliasCreation);
     }
 
-    private void findContactNow(String spoken) {
+    private void findContactNow(String spoken, boolean allowAliasCreation) {
         if (!contactsLoaded) loadContacts();
 
         if (!contactMatcherReady || !language.equals(contactMatcherLanguage)) {
             pendingContactQuery = spoken;
+            pendingAliasCreationAllowed = allowAliasCreation;
             statusText.setText("Loading saved contact names…");
             loadContactAliases(contactLoadGeneration);
             return;
@@ -733,9 +763,14 @@ public class MainActivity extends Activity {
         ContactNameMatcher.Result result = contactNameMatcher.resolve(spoken, speechCommandFilter);
 
         if (result.getStatus() == ContactNameMatcher.Status.NO_MATCH) {
+            String alias = aliasFromSpokenText(spoken);
             showListeningPrompt(false);
-            statusText.setText("No contact name found in “" + spoken
-                    + "”. Try again or search manually.");
+            statusText.setText("Contact not found\nWe couldn't find a matching contact for “"
+                    + spoken + "”.");
+            if (allowAliasCreation && !alias.isEmpty()) {
+                pendingAliasForSetup = alias;
+                aliasSetupLink.setVisibility(View.VISIBLE);
+            }
             return;
         }
 
@@ -747,6 +782,158 @@ public class MainActivity extends Activity {
         } else {
             showMatchChooser(spoken, currentMatches);
         }
+    }
+
+    /**
+     * Extracts the words left after the active language's command/greeting/filler
+     * dictionary has been applied. Only voice searches may start alias creation.
+     */
+    private String aliasFromSpokenText(String spoken) {
+        List<String> tokens = speechCommandFilter.filterTokens(spoken);
+        if (tokens.isEmpty()) return "";
+        StringBuilder alias = new StringBuilder();
+        for (String token : tokens) {
+            if (token == null || token.trim().isEmpty()) continue;
+            if (alias.length() > 0) alias.append(' ');
+            alias.append(token.trim());
+        }
+        return alias.toString().trim();
+    }
+
+    /** First step of voice-led alias creation: choose the real device contact. */
+    private void showAliasContactPicker(String alias) {
+        if (contacts.isEmpty()) {
+            showListeningPrompt(false);
+            statusText.setText("No contacts with phone numbers are available to link to this name.");
+            return;
+        }
+
+        LinearLayout panel = dialogPanel();
+        panel.addView(dialogTitle("Who do you mean?"));
+        TextView hint = text("Choose the contact you want VoiceDeck to remember as “"
+                + alias + "”.", 15, false);
+        hint.setTextColor(COLOR_SECONDARY);
+        hint.setPadding(0, 0, 0, dp(10));
+        panel.addView(hint);
+
+        EditText search = new EditText(this);
+        search.setSingleLine(true);
+        search.setTextSize(17);
+        search.setHint("Search contacts");
+        search.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+        search.setPadding(dp(14), dp(10), dp(14), dp(10));
+        search.setBackground(roundedBackground(COLOR_BACKGROUND, COLOR_BORDER, 14));
+        panel.addView(search, new LinearLayout.LayoutParams(-1, dp(56)));
+
+        List<ContactItem> visibleContacts = new ArrayList<>(contacts);
+        ArrayAdapter<ContactItem> adapter = new ArrayAdapter<ContactItem>(
+                this, android.R.layout.simple_list_item_1, visibleContacts) {
+            @Override public View getView(int position, View convertView, ViewGroup parent) {
+                TextView row = (TextView) super.getView(position, convertView, parent);
+                row.setText(getItem(position).name);
+                row.setTextSize(18);
+                row.setTextColor(COLOR_TEXT);
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                row.setPadding(dp(14), dp(8), dp(14), dp(8));
+                row.setMinHeight(dp(58));
+                return row;
+            }
+        };
+
+        ListView list = new ListView(this);
+        list.setAdapter(adapter);
+        list.setDivider(new android.graphics.drawable.ColorDrawable(COLOR_BORDER));
+        list.setDividerHeight(dp(1));
+        LinearLayout.LayoutParams listParams = new LinearLayout.LayoutParams(-1, dp(390));
+        listParams.topMargin = dp(8);
+        panel.addView(list, listParams);
+
+        AlertDialog dialog = new AlertDialog.Builder(this).setView(panel)
+                .setNegativeButton("Cancel", null).create();
+        list.setOnItemClickListener((parent, view, position, id) -> {
+            ContactItem selected = visibleContacts.get(position);
+            dialog.dismiss();
+            confirmRememberAlias(alias, selected);
+        });
+        search.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String query = s == null ? "" : s.toString().trim().toLowerCase(Locale.ROOT);
+                visibleContacts.clear();
+                for (ContactItem contact : contacts) {
+                    String name = contact.name == null ? "" : contact.name.toLowerCase(Locale.ROOT);
+                    String phone = contact.phone == null ? "" : contact.phone.toLowerCase(Locale.ROOT);
+                    if (query.isEmpty() || name.contains(query) || phone.contains(query)) {
+                        visibleContacts.add(contact);
+                    }
+                }
+                adapter.notifyDataSetChanged();
+            }
+            @Override public void afterTextChanged(Editable s) { }
+        });
+        dialog.setOnShowListener(ignored -> {
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setBackgroundDrawable(
+                        roundedBackground(COLOR_SURFACE, COLOR_BORDER, 24));
+            }
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(COLOR_SECONDARY);
+        });
+        dialog.show();
+    }
+
+    /** Ask explicitly before saving the locally spoken name for the selected contact. */
+    private void confirmRememberAlias(String alias, ContactItem contact) {
+        if (contact == null || alias == null || alias.trim().isEmpty()) return;
+        new AlertDialog.Builder(this)
+                .setTitle("Remember this name?")
+                .setMessage("Should I remember “" + alias + "” as “"
+                        + contact.name + "”?")
+                .setPositiveButton("Yes, remember", (dialog, which) ->
+                        saveContactAlias(alias, contact))
+                .setNegativeButton("No", null)
+                .show();
+    }
+
+    private void saveContactAlias(String alias, ContactItem contact) {
+        if (contactAliasRepository == null) {
+            Toast.makeText(this, "Alias storage is not ready. Please try again.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+        String normalized = SpeechCommandFilter.normalizeTerm(alias);
+        if (normalized.isEmpty()) {
+            Toast.makeText(this, "That spoken name cannot be saved.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ContactAlias entry = new ContactAlias(
+                contact.id, alias.trim(), normalized, language, System.currentTimeMillis());
+        contactAliasRepository.insert(entry,
+                new ContactAliasRepository.ResultCallback<Long>() {
+                    @Override public void onSuccess(Long id) {
+                        if (isFinishing() || isDestroyed()) return;
+                        if (id == null || id <= 0) {
+                            Toast.makeText(MainActivity.this,
+                                    "I already remember that name for this contact.",
+                                    Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        // Rebuild the in-memory matcher from the actual Room database.
+                        loadContactAliases(contactLoadGeneration);
+                        showListeningPrompt(false);
+                        statusText.setText("I'll remember “" + alias + "” as “"
+                                + contact.name + "”.");
+                        Toast.makeText(MainActivity.this, "I'll remember that!",
+                                Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override public void onError(Exception error) {
+                        if (isFinishing() || isDestroyed()) return;
+                        Toast.makeText(MainActivity.this,
+                                "Couldn't save that name. Please try again.",
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
     }
 
     private void showMatchChooser(String spoken, List<ContactItem> matches) {
@@ -849,7 +1036,7 @@ public class MainActivity extends Activity {
                     input.requestFocus();
                 } else {
                     dialog.dismiss();
-                    findContact(query);
+                    findContact(query, true);
                 }
             });
             input.requestFocus();
