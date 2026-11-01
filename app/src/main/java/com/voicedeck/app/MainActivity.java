@@ -106,6 +106,7 @@ public class MainActivity extends Activity {
     private SpeechCommandFilter speechCommandFilter = SpeechCommandFilter.empty();
     private boolean speechDictionaryReady;
     private boolean showingDictionaryManager;
+    private boolean showingAliasManager;
     private String dictionaryManagerLanguage = "en-IN";
     private String pendingContactQuery;
     private boolean pendingAliasCreationAllowed;
@@ -1407,6 +1408,7 @@ public class MainActivity extends Activity {
 
     private void showSettings() {
         showingDictionaryManager = false;
+        showingAliasManager = false;
         content.removeAllViews();
         content.setGravity(Gravity.TOP);
         content.setPadding(dp(2), dp(12), dp(2), dp(18));
@@ -1457,6 +1459,28 @@ public class MainActivity extends Activity {
         dictionaryCard.addView(manageDictionary, manageDictionaryParams);
         manageDictionary.setOnClickListener(v -> showDictionaryManager(language));
 
+        LinearLayout aliasCard = new LinearLayout(this);
+        aliasCard.setOrientation(LinearLayout.VERTICAL);
+        aliasCard.setPadding(dp(18), dp(18), dp(18), dp(18));
+        aliasCard.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 22));
+        LinearLayout.LayoutParams aliasCardParams = new LinearLayout.LayoutParams(-1, -2);
+        aliasCardParams.topMargin = dp(14);
+        content.addView(aliasCard, aliasCardParams);
+        aliasCard.addView(text("Contact aliases", 19, true));
+        TextView aliasHint = text(
+                "Manage the nicknames VoiceDeck remembers for your contacts.", 14, false);
+        aliasHint.setTextColor(COLOR_SECONDARY);
+        LinearLayout.LayoutParams aliasHintParams = new LinearLayout.LayoutParams(-1, -2);
+        aliasHintParams.topMargin = dp(6);
+        aliasCard.addView(aliasHint, aliasHintParams);
+        Button manageAliases = new Button(this);
+        manageAliases.setText("Manage aliases");
+        styleActionButton(manageAliases, COLOR_SAGE, COLOR_PRIMARY, COLOR_SAGE, 54);
+        LinearLayout.LayoutParams manageAliasesParams = new LinearLayout.LayoutParams(-1, dp(56));
+        manageAliasesParams.topMargin = dp(14);
+        aliasCard.addView(manageAliases, manageAliasesParams);
+        manageAliases.setOnClickListener(v -> showAliasManager());
+
         LinearLayout permissionCard = new LinearLayout(this);
         permissionCard.setOrientation(LinearLayout.VERTICAL);
         permissionCard.setPadding(dp(18), dp(18), dp(18), dp(18));
@@ -1500,6 +1524,310 @@ public class MainActivity extends Activity {
         doneParams.topMargin = dp(18); content.addView(done, doneParams);
         done.setOnClickListener(v -> { if (!currentMatches.isEmpty()) showCard(showingBack); else showListeningPrompt(false); });
         statusText.setText("Settings. Choose your voice search language and review permissions.");
+    }
+
+    /** Displays all locally saved aliases and their linked Android contacts. */
+    private void showAliasManager() {
+        showingAliasManager = true;
+        showingDictionaryManager = false;
+        if (!contactsLoaded) loadContacts();
+        content.removeAllViews();
+        content.setGravity(Gravity.TOP);
+        content.setPadding(dp(2), dp(12), dp(2), dp(18));
+
+        TextView heading = centeredText("CONTACT ALIASES", 13, true, COLOR_SECONDARY);
+        heading.setLetterSpacing(0.12f);
+        content.addView(heading, new LinearLayout.LayoutParams(-1, dp(34)));
+        TextView title = centeredText("Manage aliases", 26, true, COLOR_TEXT);
+        content.addView(title, new LinearLayout.LayoutParams(-1, -2));
+        TextView description = text(
+                "Add, edit or remove the nicknames VoiceDeck uses to find your contacts. " +
+                        "Aliases are stored only on this device.", 14, false);
+        description.setTextColor(COLOR_SECONDARY);
+        description.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams descriptionParams = new LinearLayout.LayoutParams(-1, -2);
+        descriptionParams.setMargins(dp(8), dp(8), dp(8), dp(14));
+        content.addView(description, descriptionParams);
+
+        Button add = new Button(this);
+        add.setText("Add alias");
+        styleActionButton(add, COLOR_PRIMARY, Color.WHITE, COLOR_PRIMARY, 52);
+        content.addView(add, new LinearLayout.LayoutParams(-1, dp(54)));
+        add.setOnClickListener(v -> showAliasEditor(null));
+
+        EditText search = new EditText(this);
+        search.setSingleLine(true);
+        search.setTextSize(16);
+        search.setHint("Search aliases or contacts");
+        search.setPadding(dp(14), dp(8), dp(14), dp(8));
+        search.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 14));
+        LinearLayout.LayoutParams searchParams = new LinearLayout.LayoutParams(-1, dp(54));
+        searchParams.topMargin = dp(12);
+        content.addView(search, searchParams);
+
+        LinearLayout listCard = new LinearLayout(this);
+        listCard.setOrientation(LinearLayout.VERTICAL);
+        listCard.setPadding(dp(14), dp(14), dp(14), dp(14));
+        listCard.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 20));
+        LinearLayout.LayoutParams listParams = new LinearLayout.LayoutParams(-1, -2);
+        listParams.topMargin = dp(12);
+        content.addView(listCard, listParams);
+        listCard.addView(text("Saved aliases", 18, true));
+        TextView loading = text("Loading aliases…", 14, false);
+        loading.setTextColor(COLOR_SECONDARY);
+        LinearLayout.LayoutParams loadingParams = new LinearLayout.LayoutParams(-1, -2);
+        loadingParams.topMargin = dp(10);
+        listCard.addView(loading, loadingParams);
+
+        Button back = new Button(this);
+        back.setText("Back to settings");
+        styleActionButton(back, COLOR_SURFACE, COLOR_PRIMARY, COLOR_BORDER, 54);
+        LinearLayout.LayoutParams backParams = new LinearLayout.LayoutParams(-1, dp(56));
+        backParams.topMargin = dp(16);
+        content.addView(back, backParams);
+        back.setOnClickListener(v -> showSettings());
+
+        if (contactAliasRepository == null) {
+            initializeSpeechDictionary();
+            loading.setText("Preparing alias storage. Please reopen this screen in a moment.");
+            return;
+        }
+        contactAliasRepository.getAllAliases(new ContactAliasRepository.ResultCallback<List<ContactAlias>>() {
+            @Override public void onSuccess(List<ContactAlias> aliases) {
+                if (isFinishing() || isDestroyed() || !showingAliasManager) return;
+                listCard.removeView(loading);
+                TextView empty = text("No aliases saved yet. Add a nickname to get started.", 14, false);
+                empty.setTextColor(COLOR_SECONDARY);
+                listCard.addView(empty);
+                Runnable render = () -> renderAliasRows(listCard, empty, aliases,
+                        search.getText() == null ? "" : search.getText().toString());
+                search.addTextChangedListener(new TextWatcher() {
+                    @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+                    @Override public void onTextChanged(CharSequence s, int start, int before, int count) { render.run(); }
+                    @Override public void afterTextChanged(Editable s) { }
+                });
+                render.run();
+            }
+            @Override public void onError(Exception error) {
+                if (isFinishing() || isDestroyed() || !showingAliasManager) return;
+                loading.setText("Couldn't load saved aliases. Please try again.");
+            }
+        });
+    }
+
+    private void renderAliasRows(LinearLayout parent, TextView empty,
+                                 List<ContactAlias> aliases, String filter) {
+        // Remove rendered rows but retain the heading and empty-state view.
+        for (int i = parent.getChildCount() - 1; i >= 0; i--) {
+            View child = parent.getChildAt(i);
+            if (child != empty && child.getTag() != null && "alias-row".equals(child.getTag())) {
+                parent.removeViewAt(i);
+            }
+        }
+        String query = filter == null ? "" : filter.trim().toLowerCase(Locale.ROOT);
+        int shown = 0;
+        for (ContactAlias alias : aliases) {
+            ContactItem linked = null;
+            for (ContactItem contact : contacts) if (contact.id == alias.contactId) { linked = contact; break; }
+            String contactName = linked == null ? "Contact no longer available" : linked.name;
+            if (!query.isEmpty() && !alias.alias.toLowerCase(Locale.ROOT).contains(query)
+                    && !contactName.toLowerCase(Locale.ROOT).contains(query)) continue;
+            LinearLayout row = new LinearLayout(this);
+            row.setTag("alias-row");
+            row.setOrientation(LinearLayout.VERTICAL);
+            row.setPadding(0, dp(12), 0, dp(12));
+            TextView aliasName = text(alias.alias, 17, true);
+            row.addView(aliasName);
+            TextView details = text("Linked to " + contactName + "  ·  "
+                    + dictionaryLanguageName(alias.languageTag), 13, false);
+            details.setTextColor(linked == null ? Color.rgb(160, 75, 55) : COLOR_SECONDARY);
+            LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(-1, -2);
+            detailsParams.topMargin = dp(3);
+            row.addView(details, detailsParams);
+            LinearLayout actions = new LinearLayout(this);
+            actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+            Button edit = new Button(this);
+            edit.setText("Edit");
+            styleActionButton(edit, COLOR_SAGE, COLOR_PRIMARY, COLOR_SAGE, 40);
+            Button remove = new Button(this);
+            remove.setText("Delete");
+            styleActionButton(remove, COLOR_SURFACE, COLOR_PRIMARY, COLOR_BORDER, 40);
+            LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(-2, dp(42));
+            actionParams.leftMargin = dp(8);
+            actions.addView(edit, actionParams);
+            actions.addView(remove, actionParams);
+            LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(-1, -2);
+            actionsParams.topMargin = dp(6);
+            row.addView(actions, actionsParams);
+            edit.setOnClickListener(v -> showAliasEditor(alias));
+            remove.setOnClickListener(v -> confirmDeleteAlias(alias));
+            parent.addView(row);
+            View divider = new View(this);
+            divider.setTag("alias-row");
+            divider.setBackgroundColor(COLOR_BORDER);
+            parent.addView(divider, new LinearLayout.LayoutParams(-1, dp(1)));
+            shown++;
+        }
+        empty.setVisibility(shown == 0 ? View.VISIBLE : View.GONE);
+        empty.setText(aliases.isEmpty() ? "No aliases saved yet. Add a nickname to get started."
+                : "No aliases match your search.");
+    }
+
+    private void showAliasEditor(ContactAlias existing) {
+        if (contacts.isEmpty()) {
+            Toast.makeText(this, "No contacts with phone numbers are available.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        final ContactItem[] selectedContact = new ContactItem[1];
+        if (existing != null) {
+            for (ContactItem item : contacts) if (item.id == existing.contactId) { selectedContact[0] = item; break; }
+        }
+        LinearLayout panel = dialogPanel();
+        panel.addView(dialogTitle(existing == null ? "Add alias" : "Edit alias"));
+        TextView hint = text("Choose the contact and the name you want to use when speaking to VoiceDeck.", 14, false);
+        hint.setTextColor(COLOR_SECONDARY);
+        panel.addView(hint);
+        Button contactButton = new Button(this);
+        contactButton.setText(selectedContact[0] == null ? "Select contact" : selectedContact[0].name);
+        styleActionButton(contactButton, COLOR_SAGE, COLOR_PRIMARY, COLOR_SAGE, 48);
+        LinearLayout.LayoutParams contactParams = new LinearLayout.LayoutParams(-1, dp(52));
+        contactParams.topMargin = dp(10);
+        panel.addView(contactButton, contactParams);
+        contactButton.setOnClickListener(v -> showAliasManagementContactPicker(selectedContact, contactButton));
+
+        EditText aliasInput = new EditText(this);
+        aliasInput.setSingleLine(true);
+        aliasInput.setTextSize(17);
+        aliasInput.setHint("Nickname, for example Aai");
+        aliasInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        LinearLayout.LayoutParams aliasParams = new LinearLayout.LayoutParams(-1, dp(54));
+        aliasParams.topMargin = dp(8);
+        panel.addView(aliasInput, aliasParams);
+        if (existing != null) aliasInput.setText(existing.alias);
+
+        TextView languageLabel = text("Spoken language", 15, true);
+        LinearLayout.LayoutParams languageLabelParams = new LinearLayout.LayoutParams(-1, -2);
+        languageLabelParams.topMargin = dp(8);
+        panel.addView(languageLabel, languageLabelParams);
+        RadioGroup languages = new RadioGroup(this);
+        languages.setOrientation(RadioGroup.VERTICAL);
+        String[] languageTags = {"en-IN", "hi-IN", "mr-IN"};
+        String[] languageLabels = {"English", "हिन्दी", "मराठी"};
+        for (int i = 0; i < languageTags.length; i++) {
+            RadioButton option = new RadioButton(this);
+            option.setId(100 + i);
+            option.setText(languageLabels[i]);
+            option.setTextColor(COLOR_TEXT);
+            option.setButtonTintList(android.content.res.ColorStateList.valueOf(COLOR_PRIMARY));
+            option.setChecked((existing == null ? language : existing.languageTag).equals(languageTags[i]));
+            languages.addView(option);
+        }
+        panel.addView(languages);
+
+        AlertDialog dialog = new AlertDialog.Builder(this).setView(panel)
+                .setPositiveButton(existing == null ? "Add" : "Save", null)
+                .setNegativeButton("Cancel", null).create();
+        dialog.setOnShowListener(ignored -> {
+            if (dialog.getWindow() != null) dialog.getWindow().setBackgroundDrawable(
+                    roundedBackground(COLOR_SURFACE, COLOR_BORDER, 24));
+            Button save = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            save.setTextColor(COLOR_PRIMARY);
+            save.setOnClickListener(v -> {
+                String aliasText = aliasInput.getText().toString().trim();
+                String normalized = SpeechCommandFilter.normalizeTerm(aliasText);
+                if (selectedContact[0] == null) {
+                    Toast.makeText(this, "Please select a contact.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (normalized.isEmpty() || aliasText.length() > 80 || normalized.split("\\s+").length > 8) {
+                    aliasInput.setError("Enter a nickname of up to 80 characters and 8 words.");
+                    return;
+                }
+                int selectedLanguageIndex = Math.max(0, languages.indexOfChild(
+                        languages.findViewById(languages.getCheckedRadioButtonId())));
+                String selectedLanguage = languageTags[Math.min(selectedLanguageIndex, languageTags.length - 1)];
+                ContactAlias entry = existing == null
+                        ? new ContactAlias(selectedContact[0].id, aliasText, normalized, selectedLanguage, System.currentTimeMillis())
+                        : new ContactAlias(selectedContact[0].id, aliasText, normalized, selectedLanguage, existing.createdAt);
+                if (existing != null) entry.id = existing.id;
+                if (existing == null) {
+                    contactAliasRepository.insert(entry, new ContactAliasRepository.ResultCallback<Long>() {
+                        @Override public void onSuccess(Long id) {
+                            if (id == null || id <= 0) { Toast.makeText(MainActivity.this, "That nickname is already linked to this contact in this language.", Toast.LENGTH_LONG).show(); return; }
+                            dialog.dismiss(); onAliasManagementSaved("Alias added.");
+                        }
+                        @Override public void onError(Exception error) { Toast.makeText(MainActivity.this, "Couldn't add this alias. Please try again.", Toast.LENGTH_LONG).show(); }
+                    });
+                } else {
+                    contactAliasRepository.update(entry, new ContactAliasRepository.ResultCallback<Integer>() {
+                        @Override public void onSuccess(Integer updated) {
+                            if (updated == null || updated <= 0) { Toast.makeText(MainActivity.this, "That nickname is already linked to this contact in this language.", Toast.LENGTH_LONG).show(); return; }
+                            dialog.dismiss(); onAliasManagementSaved("Alias updated.");
+                        }
+                        @Override public void onError(Exception error) { Toast.makeText(MainActivity.this, "Couldn't update this alias. Please try again.", Toast.LENGTH_LONG).show(); }
+                    });
+                }
+            });
+        });
+        dialog.show();
+    }
+
+    private void showAliasManagementContactPicker(ContactItem[] selected, Button target) {
+        List<ContactItem> visible = new ArrayList<>(contacts);
+        ArrayAdapter<ContactItem> adapter = new ArrayAdapter<ContactItem>(this,
+                android.R.layout.simple_list_item_1, visible) {
+            @Override public View getView(int position, View convertView, ViewGroup parent) {
+                TextView row = (TextView) super.getView(position, convertView, parent);
+                row.setText(getItem(position).name);
+                row.setTextSize(17); row.setTextColor(COLOR_TEXT); row.setMinHeight(dp(54));
+                return row;
+            }
+        };
+        LinearLayout panel = dialogPanel();
+        panel.addView(dialogTitle("Select contact"));
+        EditText search = new EditText(this);
+        search.setSingleLine(true); search.setHint("Search contacts"); search.setTextSize(16);
+        panel.addView(search, new LinearLayout.LayoutParams(-1, dp(52)));
+        ListView list = new ListView(this);
+        list.setAdapter(adapter);
+        panel.addView(list, new LinearLayout.LayoutParams(-1, dp(360)));
+        AlertDialog dialog = new AlertDialog.Builder(this).setView(panel).setNegativeButton("Cancel", null).create();
+        list.setOnItemClickListener((parent, view, position, id) -> {
+            selected[0] = visible.get(position); target.setText(selected[0].name); dialog.dismiss();
+        });
+        search.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String q = s == null ? "" : s.toString().toLowerCase(Locale.ROOT).trim();
+                visible.clear();
+                for (ContactItem item : contacts) if (q.isEmpty() || item.name.toLowerCase(Locale.ROOT).contains(q)
+                        || item.phone.toLowerCase(Locale.ROOT).contains(q)) visible.add(item);
+                adapter.notifyDataSetChanged();
+            }
+            @Override public void afterTextChanged(Editable s) { }
+        });
+        dialog.show();
+    }
+
+    private void confirmDeleteAlias(ContactAlias alias) {
+        new AlertDialog.Builder(this).setTitle("Delete alias?")
+                .setMessage("Remove “" + alias.alias + "” from VoiceDeck? The Android contact will not be affected.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Delete", (dialog, which) -> contactAliasRepository.deleteById(alias.id,
+                        new ContactAliasRepository.ResultCallback<Integer>() {
+                            @Override public void onSuccess(Integer deleted) {
+                                onAliasManagementSaved(deleted != null && deleted > 0 ? "Alias deleted." : "Alias was not found.");
+                            }
+                            @Override public void onError(Exception error) {
+                                Toast.makeText(MainActivity.this, "Couldn't delete this alias.", Toast.LENGTH_LONG).show();
+                            }
+                        })).show();
+    }
+
+    private void onAliasManagementSaved(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        loadContactAliases(contactLoadGeneration);
+        showAliasManager();
     }
 
     private void showDictionaryManager(String selectedLanguage) {
@@ -1641,6 +1969,7 @@ public class MainActivity extends Activity {
             }
             parent.addView(row);
             View divider = new View(this);
+            divider.setTag("alias-row");
             divider.setBackgroundColor(COLOR_BORDER);
             parent.addView(divider, new LinearLayout.LayoutParams(-1, dp(1)));
             enabled.setOnCheckedChangeListener((button, checked) -> {

@@ -83,6 +83,31 @@ public class ContactAliasDaoTest {
     }
 
     @Test
+    public void canUpdateAliasTextContactAndLanguageWithoutChangingItsId() {
+        long id = dao.insert(alias(10, "Aai", "aai", "mr-IN"));
+        ContactAlias updated = alias(20, "Mummy", "mummy", "en-IN");
+        updated.id = id;
+
+        assertEquals(1, dao.update(updated));
+        ContactAlias saved = dao.getAllAliases().get(0);
+        assertEquals(id, saved.id);
+        assertEquals(20L, saved.contactId);
+        assertEquals("Mummy", saved.alias);
+        assertEquals("en-IN", saved.languageTag);
+    }
+
+    @Test
+    public void updateIgnoresDuplicateAliasForSameContactAndLanguage() {
+        dao.insert(alias(10, "Aai", "aai", "mr-IN"));
+        long secondId = dao.insert(alias(10, "Mummy", "mummy", "mr-IN"));
+        ContactAlias duplicate = alias(10, "आई", "aai", "mr-IN");
+        duplicate.id = secondId;
+
+        assertEquals(0, dao.update(duplicate));
+        assertEquals(2, dao.getAllAliases().size());
+    }
+
+    @Test
     public void canDeleteOneAliasOrAllAliasesForAContact() {
         long firstId = dao.insert(alias(10, "Aai", "aai", "mr-IN"));
         dao.insert(alias(10, "Mummy", "mummy", "en-IN"));

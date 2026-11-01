@@ -4,6 +4,7 @@ import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
+import androidx.room.Update;
 
 import com.voicedeck.app.data.local.entity.ContactAlias;
 
@@ -18,6 +19,10 @@ public interface ContactAliasDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     List<Long> insertAll(List<ContactAlias> aliases);
+
+    /** Updates an existing alias; uniqueness conflicts are ignored and reported as zero rows. */
+    @Update(onConflict = OnConflictStrategy.IGNORE)
+    int update(ContactAlias alias);
 
     @Query("SELECT * FROM contact_aliases WHERE contactId = :contactId " +
             "ORDER BY languageTag ASC, normalizedAlias ASC")

@@ -49,6 +49,10 @@ public final class ContactAliasRepository {
         execute(() -> dao.insert(alias), callback);
     }
 
+    public void update(ContactAlias alias, ResultCallback<Integer> callback) {
+        execute(() -> dao.update(alias), callback);
+    }
+
     public void deleteById(long id, ResultCallback<Integer> callback) {
         execute(() -> dao.deleteById(id), callback);
     }
