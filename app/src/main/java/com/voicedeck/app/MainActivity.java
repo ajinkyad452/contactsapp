@@ -42,7 +42,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -77,6 +76,7 @@ public class MainActivity extends Activity {
     private SpeechRecognizer speechRecognizer;
     private String language = "en-IN";
     private final List<ContactItem> contacts = new ArrayList<>();
+    private ContactNameMatcher contactNameMatcher;
     private List<ContactItem> currentMatches = new ArrayList<>();
     private int currentIndex = 0;
     private boolean showingBack = false;
@@ -381,6 +381,8 @@ public class MainActivity extends Activity {
             Toast.makeText(this, "Could not read contacts.", Toast.LENGTH_LONG).show();
         }
         for (ContactItem item : contacts) loadExtraDetails(item);
+        // Rebuild the local name index whenever the device contact list is loaded.
+        contactNameMatcher = new ContactNameMatcher(contacts, Collections.emptyMap());
     }
 
     private String safe(String s) { return s == null ? "" : s.trim(); }
@@ -447,10 +449,20 @@ public class MainActivity extends Activity {
                         showListeningPrompt(false);
                         statusText.setText("No speech recognised. Try again.");
                     }
+
+                    if (matches != null) {
+                        for (String result : matches) {
+                            android.util.Log.d("VoiceDeckSpeech", "HEARD: " + result);
+                        }
+                    }
                 }
                 @Override public void onPartialResults(Bundle partialResults) {
                     ArrayList<String> p = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                     if (p != null && !p.isEmpty() && heardText != null) heardText.setText(p.get(0));
+
+                    if (p != null && !p.isEmpty()) {
+                        android.util.Log.d("VoiceDeckSpeech", "PARTIAL: " + p.get(0));
+                    }
                 }
                 @Override public void onEvent(int eventType, Bundle params) {}
             });
@@ -523,33 +535,25 @@ public class MainActivity extends Activity {
         }
     }
 
-    private String normalise(String value) {
-        String s = Normalizer.normalize(value == null ? "" : value, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT)
-                .replaceAll("[^\\p{L}\\p{N} ]", " ").trim();
-        return s.replaceAll("\\s+", " ");
-    }
-
     private void findContact(String spoken) {
         if (contacts.isEmpty()) loadContacts();
-        String query = normalise(spoken);
-        if (query.isEmpty()) {
+
+        if (contactNameMatcher == null) {
+            contactNameMatcher = new ContactNameMatcher(contacts, Collections.emptyMap());
+        }
+
+        ContactNameMatcher.Result result = contactNameMatcher.resolve(spoken);
+
+        if (result.getStatus() == ContactNameMatcher.Status.NO_MATCH) {
             showListeningPrompt(false);
-            statusText.setText("Please say a contact name.");
+            statusText.setText("No contact name found in “" + spoken
+                    + "”. Try again or search manually.");
             return;
         }
-        List<ContactItem> exact = new ArrayList<>();
-        List<ContactItem> partial = new ArrayList<>();
-        for (ContactItem c : contacts) {
-            String name = normalise(c.name);
-            if (name.equals(query)) exact.add(c);
-            else if (name.contains(query) || query.contains(name)) partial.add(c);
-        }
-        currentMatches = !exact.isEmpty() ? exact : partial;
-        if (currentMatches.isEmpty()) {
-            showListeningPrompt(false);
-            statusText.setText("No contact found for “" + spoken + "”. Try again or search manually.");
-        } else if (currentMatches.size() == 1) {
+
+        currentMatches = new ArrayList<>(result.getMatches());
+
+        if (result.getStatus() == ContactNameMatcher.Status.MATCH_FOUND) {
             currentIndex = 0;
             showCard(false);
         } else {
