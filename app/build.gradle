@@ -1,0 +1,31 @@
+plugins {
+    id 'com.android.application'
+}
+
+def versionProperties = new Properties()
+def versionPropertiesFile = rootProject.file('version.properties')
+versionPropertiesFile.withInputStream {
+    versionProperties.load(it)
+}
+
+android {
+    namespace 'com.voicedeck.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.voicedeck.app'
+        minSdk 26
+        targetSdk 35
+        versionCode versionProperties.getProperty('VERSION_CODE').toInteger()
+        versionName versionProperties.getProperty('VERSION_NAME')
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.15.0'
+}
