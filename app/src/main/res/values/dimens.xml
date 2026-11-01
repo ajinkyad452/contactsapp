@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="vd_space_xs">4dp</dimen>
+    <dimen name="vd_space_sm">8dp</dimen>
+    <dimen name="vd_space_md">16dp</dimen>
+    <dimen name="vd_space_lg">24dp</dimen>
+    <dimen name="vd_space_xl">32dp</dimen>
+    <dimen name="vd_radius_card">24dp</dimen>
+    <dimen name="vd_radius_control">16dp</dimen>
+    <dimen name="vd_touch_target_min">56dp</dimen>
+</resources>

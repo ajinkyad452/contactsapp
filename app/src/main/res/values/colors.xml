@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="vd_background">#F4EFE5</color>
+    <color name="vd_surface">#FFFCF6</color>
+    <color name="vd_primary">#47664E</color>
+    <color name="vd_text_primary">#28352D</color>
+    <color name="vd_text_secondary">#777568</color>
+    <color name="vd_sage">#E5EBDD</color>
+    <color name="vd_border">#E5DED1</color>
+</resources>
