@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/vd_canvas">
+
+<LinearLayout
+    android:layout_width="0dp"
+    android:layout_height="0dp"
+    android:orientation="vertical"
+    android:padding="@dimen/screen_padding"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toTopOf="parent"
+    app:layout_constraintWidth_max="@dimen/content_max_width">
+
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Manage aliases" style="@style/Text.VoiceDeck.Title" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="Teach VoiceDeck the names you use every day." style="@style/Text.VoiceDeck.Body" />
+    <EditText android:id="@+id/alias_search" android:layout_width="match_parent" android:layout_height="@dimen/field_height" android:layout_marginTop="@dimen/space_5" android:hint="Search aliases" android:inputType="text" style="@style/Widget.VoiceDeck.Field" />
+    <com.google.android.material.button.MaterialButton android:id="@+id/action_add_alias" android:layout_width="match_parent" android:layout_height="@dimen/button_height_secondary" android:layout_marginTop="@dimen/space_3" android:text="+  Add alias" style="@style/Widget.VoiceDeck.Button.Outline" />
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_5" android:text="3 SAVED ALIASES" style="@style/Text.VoiceDeck.Eyebrow" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:background="@drawable/bg_card" android:orientation="vertical" android:padding="@dimen/space_3">
+        <TextView android:id="@+id/alias_saz" android:layout_width="match_parent" android:layout_height="76dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="“Saz”   EN                                      Edit   Delete&#10;↳ Sarah Mitchell" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />
+        <TextView android:layout_width="match_parent" android:layout_height="76dp" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="“Mum”   EN                                     Edit   Delete&#10;↳ Elaine Mitchell" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />
+        <TextView android:layout_width="match_parent" android:layout_height="76dp" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="“Dr K”   EN                                    Edit   Delete&#10;↳ Dr Amara Khan" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
+    </LinearLayout>
+</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

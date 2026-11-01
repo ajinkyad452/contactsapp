@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/vd_canvas">
+
+<LinearLayout
+    android:layout_width="0dp"
+    android:layout_height="0dp"
+    android:orientation="vertical"
+    android:padding="@dimen/screen_padding"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toTopOf="parent"
+    app:layout_constraintWidth_max="@dimen/content_max_width">
+
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Add alias" style="@style/Text.VoiceDeck.Title" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="Link a familiar nickname to an existing contact." style="@style/Text.VoiceDeck.Body" />
+
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_6" android:text="NICKNAME" style="@style/Text.VoiceDeck.Eyebrow" />
+    <EditText android:id="@+id/alias_nickname" android:layout_width="match_parent" android:layout_height="@dimen/field_height" android:layout_marginTop="@dimen/space_2" android:hint="e.g. Saz" android:inputType="textPersonName" android:text="Saz" style="@style/Widget.VoiceDeck.Field" />
+
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_5" android:text="CONTACT" style="@style/Text.VoiceDeck.Eyebrow" />
+    <TextView android:id="@+id/alias_contact_selector" android:layout_width="match_parent" android:layout_height="64dp" android:layout_marginTop="@dimen/space_2" android:background="@drawable/bg_card" android:gravity="center_vertical" android:paddingHorizontal="@dimen/space_4" android:text="Sarah Mitchell                                                      ›" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
+
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_5" android:text="LANGUAGE" style="@style/Text.VoiceDeck.Eyebrow" />
+    <TextView android:id="@+id/alias_language_selector" android:layout_width="match_parent" android:layout_height="64dp" android:layout_marginTop="@dimen/space_2" android:background="@drawable/bg_card" android:gravity="center_vertical" android:paddingHorizontal="@dimen/space_4" android:text="English (United Kingdom)                                     ›" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
+
+    <Space android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+        <com.google.android.material.button.MaterialButton android:id="@+id/action_cancel_alias" android:layout_width="0dp" android:layout_height="@dimen/button_height" android:layout_marginEnd="@dimen/space_2" android:layout_weight="1" android:text="Cancel" style="@style/Widget.VoiceDeck.Button.Outline" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/action_save_alias" android:layout_width="0dp" android:layout_height="@dimen/button_height" android:layout_marginStart="@dimen/space_2" android:layout_weight="1" android:text="Save alias" style="@style/Widget.VoiceDeck.Button.Primary" />
+    </LinearLayout>
+</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

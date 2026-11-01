@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/vd_canvas">
+
+<ScrollView
+    android:layout_width="0dp"
+    android:layout_height="0dp"
+    android:clipToPadding="false"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toTopOf="parent"
+    app:layout_constraintWidth_max="@dimen/content_max_width">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/screen_padding">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="BEST MATCH"
+                style="@style/Text.VoiceDeck.Eyebrow" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Here’s who I found"
+                style="@style/Text.VoiceDeck.Caption" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/contact_card"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/contact_card_height"
+            android:layout_marginTop="@dimen/space_3">
+
+            <LinearLayout
+                android:id="@+id/contact_front"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_card"
+                android:elevation="6dp"
+                android:orientation="vertical"
+                android:padding="@dimen/space_5">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="232dp"
+                    android:background="@color/vd_sage"
+                    android:contentDescription="@string/contact_photo"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/contact_portrait" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_5"
+                    android:gravity="center"
+                    android:text="Sarah Mitchell"
+                    android:textColor="@color/vd_text"
+                    android:textSize="27sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_1"
+                    android:gravity="center"
+                    android:text="+44 7700 900 138"
+                    style="@style/Text.VoiceDeck.Body" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="@dimen/space_5"
+                    android:layout_marginBottom="@dimen/space_5"
+                    android:background="@color/vd_border" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/action_call"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/button_height"
+                        android:layout_marginEnd="@dimen/space_2"
+                        android:layout_weight="1"
+                        android:text="Call"
+                        style="@style/Widget.VoiceDeck.Button.Primary" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/action_whatsapp"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/button_height"
+                        android:layout_marginStart="@dimen/space_2"
+                        android:layout_weight="1"
+                        android:text="WhatsApp"
+                        style="@style/Widget.VoiceDeck.Button.Outline" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/action_show_details"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/touch_target"
+                    android:layout_marginTop="@dimen/space_3"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:gravity="center"
+                    android:text="Tap for email, birthday and other details  ›"
+                    style="@style/Text.VoiceDeck.Caption" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/contact_back"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_card"
+                android:elevation="6dp"
+                android:orientation="vertical"
+                android:padding="@dimen/space_5"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CONTACT DETAILS"
+                    style="@style/Text.VoiceDeck.Eyebrow" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_1"
+                    android:text="Sarah Mitchell"
+                    android:textColor="@color/vd_text"
+                    android:textSize="27sp"
+                    android:textStyle="bold" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="@dimen/space_4"
+                    android:layout_marginBottom="@dimen/space_3"
+                    android:background="@color/vd_border" />
+
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="@dimen/space_2" android:text="Email&#10;sarah@northstudio.co" android:textColor="@color/vd_text" android:textSize="15sp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="@dimen/space_2" android:text="Company&#10;North Studio" android:textColor="@color/vd_text" android:textSize="15sp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="@dimen/space_2" android:text="Designation&#10;Creative Director" android:textColor="@color/vd_text" android:textSize="15sp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="@dimen/space_2" android:text="Birthday&#10;18 September" android:textColor="@color/vd_text" android:textSize="15sp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="@dimen/space_2" android:text="Address&#10;24 Willow Road, London" android:textColor="@color/vd_text" android:textSize="15sp" />
+
+                <Space android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/action_google_contacts"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/button_height_secondary"
+                    android:text="Open in Google Contacts"
+                    style="@style/Widget.VoiceDeck.Button.Outline" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/action_show_front"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/button_height_secondary"
+                    android:layout_marginTop="@dimen/space_2"
+                    android:text="Back to card front"
+                    style="@style/Widget.VoiceDeck.Button.Text" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="72dp"
+            android:layout_marginTop="@dimen/space_4"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/action_previous_contact"
+                android:layout_width="@dimen/touch_target"
+                android:layout_height="@dimen/touch_target"
+                android:background="@drawable/bg_sage_circle"
+                android:text="‹"
+                android:textColor="@color/vd_primary"
+                android:textSize="28sp" />
+
+            <ImageButton
+                android:id="@+id/action_contact_mic"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_marginHorizontal="@dimen/space_8"
+                android:background="@drawable/bg_primary_circle"
+                android:contentDescription="Start another voice search"
+                android:padding="@dimen/space_4"
+                android:src="@drawable/ic_mic_white" />
+
+            <Button
+                android:id="@+id/action_next_contact"
+                android:layout_width="@dimen/touch_target"
+                android:layout_height="@dimen/touch_target"
+                android:background="@drawable/bg_sage_circle"
+                android:text="›"
+                android:textColor="@color/vd_primary"
+                android:textSize="28sp" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="1 of 8"
+            style="@style/Text.VoiceDeck.Caption" />
+    </LinearLayout>
+</ScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>

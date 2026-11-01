@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/vd_canvas">
+
+<ScrollView
+    android:layout_width="0dp"
+    android:layout_height="0dp"
+    android:clipToPadding="false"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toTopOf="parent"
+    app:layout_constraintWidth_max="@dimen/content_max_width">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/screen_padding">
+
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Settings" style="@style/Text.VoiceDeck.Title" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="Keep VoiceDeck working the way you prefer." style="@style/Text.VoiceDeck.Body" />
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_6" android:text="VOICE PREFERENCES" style="@style/Text.VoiceDeck.Eyebrow" />
+        <TextView
+            android:id="@+id/setting_language"
+            android:layout_width="match_parent"
+            android:layout_height="76dp"
+            android:layout_marginTop="@dimen/space_2"
+            android:background="@drawable/bg_card"
+            android:gravity="center_vertical"
+            android:padding="@dimen/space_4"
+            android:text="Voice search language&#10;English (United Kingdom)                                      ›"
+            android:textColor="@color/vd_text"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_6" android:text="PERSONALISATION" style="@style/Text.VoiceDeck.Eyebrow" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:background="@drawable/bg_card" android:orientation="vertical" android:padding="@dimen/space_2">
+            <TextView android:id="@+id/setting_vocabulary" android:layout_width="match_parent" android:layout_height="72dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="Manage vocabulary&#10;Commands, greetings and fillers                              ›" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />
+            <TextView android:id="@+id/setting_aliases" android:layout_width="match_parent" android:layout_height="72dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="Manage aliases&#10;Nicknames linked to contacts                                  ›" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
+        </LinearLayout>
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_6" android:text="ABOUT &amp; PRIVACY" style="@style/Text.VoiceDeck.Eyebrow" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:background="@drawable/bg_card" android:orientation="vertical" android:padding="@dimen/space_2">
+            <TextView android:id="@+id/setting_permissions" android:layout_width="match_parent" android:layout_height="72dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="App permissions&#10;Microphone and contacts access                               ›" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />
+            <TextView android:id="@+id/setting_legal" android:layout_width="match_parent" android:layout_height="72dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="Legal&#10;Privacy policy and terms                                         ›" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1716,16 +1716,31 @@ public class MainActivity extends Activity {
             row.addView(actions, actionsParams);
             edit.setOnClickListener(v -> showAliasEditor(alias));
             remove.setOnClickListener(v -> confirmDeleteAlias(alias));
-            parent.addView(row);
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
+            rowParams.topMargin = dp(5);
+            rowParams.bottomMargin = dp(5);
+            parent.addView(row, rowParams);
             View divider = new View(this);
-            divider.setTag("alias-row");
             divider.setBackgroundColor(COLOR_BORDER);
-            parent.addView(divider, new LinearLayout.LayoutParams(-1, dp(1)));
+            LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(-1, dp(1));
+            dividerParams.setMargins(dp(8), 0, dp(8), 0);
+            parent.addView(divider, dividerParams);
             shown++;
         }
         empty.setVisibility(shown == 0 ? View.VISIBLE : View.GONE);
         empty.setText(aliases.isEmpty() ? "No aliases saved yet. Add a nickname to get started."
                 : "No aliases match your search.");
+    }
+
+    /** Applies the shared VoiceDeck form-field treatment to editable text controls. */
+    private void styleFormField(EditText field) {
+        field.setSingleLine(true);
+        field.setTextSize(16);
+        field.setTextColor(COLOR_TEXT);
+        field.setHintTextColor(COLOR_SECONDARY);
+        field.setPadding(dp(16), dp(12), dp(16), dp(12));
+        field.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 16));
+        if (android.os.Build.VERSION.SDK_INT >= 21) field.setElevation(dp(1));
     }
 
     private void showAliasEditor(ContactAlias existing) {
@@ -1744,25 +1759,32 @@ public class MainActivity extends Activity {
         panel.addView(hint);
         Button contactButton = new Button(this);
         contactButton.setText(selectedContact[0] == null ? "Select contact" : selectedContact[0].name);
-        styleActionButton(contactButton, COLOR_SAGE, COLOR_PRIMARY, COLOR_SAGE, 48);
+        styleActionButton(contactButton, COLOR_SURFACE, COLOR_PRIMARY, COLOR_BORDER, 48);
+        contactButton.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+        contactButton.setCompoundDrawablePadding(dp(10));
         LinearLayout.LayoutParams contactParams = new LinearLayout.LayoutParams(-1, dp(52));
         contactParams.topMargin = dp(10);
         panel.addView(contactButton, contactParams);
         contactButton.setOnClickListener(v -> showAliasManagementContactPicker(selectedContact, contactButton));
 
+        TextView nicknameLabel = text("Nickname", 13, true);
+        nicknameLabel.setTextColor(COLOR_SECONDARY);
+        LinearLayout.LayoutParams nicknameLabelParams = new LinearLayout.LayoutParams(-1, -2);
+        nicknameLabelParams.topMargin = dp(16);
+        panel.addView(nicknameLabel, nicknameLabelParams);
         EditText aliasInput = new EditText(this);
-        aliasInput.setSingleLine(true);
-        aliasInput.setTextSize(17);
-        aliasInput.setHint("Nickname, for example Aai");
+        styleFormField(aliasInput);
+        aliasInput.setHint("For example, Aai");
         aliasInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        LinearLayout.LayoutParams aliasParams = new LinearLayout.LayoutParams(-1, dp(54));
-        aliasParams.topMargin = dp(8);
+        LinearLayout.LayoutParams aliasParams = new LinearLayout.LayoutParams(-1, dp(56));
+        aliasParams.topMargin = dp(6);
         panel.addView(aliasInput, aliasParams);
         if (existing != null) aliasInput.setText(existing.alias);
 
-        TextView languageLabel = text("Spoken language", 15, true);
+        TextView languageLabel = text("Spoken language", 13, true);
+        languageLabel.setTextColor(COLOR_SECONDARY);
         LinearLayout.LayoutParams languageLabelParams = new LinearLayout.LayoutParams(-1, -2);
-        languageLabelParams.topMargin = dp(8);
+        languageLabelParams.topMargin = dp(16);
         panel.addView(languageLabel, languageLabelParams);
         RadioGroup languages = new RadioGroup(this);
         languages.setOrientation(RadioGroup.VERTICAL);
@@ -1997,10 +2019,11 @@ public class MainActivity extends Activity {
 
             LinearLayout row = new LinearLayout(this);
             row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(0, dp(5), 0, dp(5));
+            row.setPadding(dp(10), dp(7), dp(8), dp(7));
+            row.setBackground(roundedBackground(COLOR_BACKGROUND, COLOR_BORDER, 14));
             CheckBox enabled = new CheckBox(this);
             enabled.setText(entry.term + (entry.isDefault ? "  ·  Default" : "  ·  Custom"));
-            enabled.setTextSize(15);
+            enabled.setTextSize(14);
             enabled.setTextColor(COLOR_TEXT);
             enabled.setButtonTintList(android.content.res.ColorStateList.valueOf(COLOR_PRIMARY));
             enabled.setChecked(entry.enabled);
@@ -2012,9 +2035,10 @@ public class MainActivity extends Activity {
                 row.addView(protectedLabel);
             } else if (!entry.isDefault) {
                 Button remove = new Button(this);
-                remove.setText("Remove");
-                styleActionButton(remove, COLOR_SURFACE, COLOR_SECONDARY, COLOR_BORDER, 36);
+                remove.setText("Delete");
+                styleActionButton(remove, COLOR_SURFACE, COLOR_SECONDARY, COLOR_BORDER, 40);
                 remove.setTextSize(12);
+                remove.setPadding(dp(12), dp(6), dp(12), dp(6));
                 row.addView(remove);
                 remove.setOnClickListener(v -> confirmDeleteCustomEntry(entry));
             }
@@ -2074,14 +2098,17 @@ public class MainActivity extends Activity {
         hint.setTextColor(COLOR_SECONDARY);
         panel.addView(hint);
         EditText termInput = new EditText(this);
-        termInput.setSingleLine(true);
-        termInput.setTextSize(17);
+        styleFormField(termInput);
         termInput.setHint("For example: please call");
         termInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(-1, dp(56));
-        inputParams.topMargin = dp(10);
+        inputParams.topMargin = dp(12);
         panel.addView(termInput, inputParams);
-        panel.addView(text("Category", 15, true));
+        TextView categoryLabel = text("Category", 13, true);
+        categoryLabel.setTextColor(COLOR_SECONDARY);
+        LinearLayout.LayoutParams categoryLabelParams = new LinearLayout.LayoutParams(-1, -2);
+        categoryLabelParams.topMargin = dp(16);
+        panel.addView(categoryLabel, categoryLabelParams);
         RadioGroup categories = new RadioGroup(this);
         categories.setOrientation(RadioGroup.VERTICAL);
         String[] categoryLabels = {"Command", "Greeting", "Filler"};

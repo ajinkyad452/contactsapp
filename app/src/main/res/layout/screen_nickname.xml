@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/vd_canvas">
+
+<LinearLayout
+    android:layout_width="0dp"
+    android:layout_height="0dp"
+    android:orientation="vertical"
+    android:padding="@dimen/screen_padding"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toTopOf="parent"
+    app:layout_constraintWidth_max="@dimen/content_max_width">
+
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="NO MATCH FOUND" style="@style/Text.VoiceDeck.Eyebrow" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="Contact not found" style="@style/Text.VoiceDeck.Title" />
+
+    <LinearLayout
+        android:id="@+id/nickname_prompt"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_6"
+        android:background="@drawable/bg_card"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="@dimen/space_6">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="We couldn’t find “Saz”." style="@style/Text.VoiceDeck.SectionTitle" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_3" android:gravity="center" android:text="Would you like to save this as a nickname for an existing contact?" style="@style/Text.VoiceDeck.Body" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/action_select_nickname_contact" android:layout_width="match_parent" android:layout_height="@dimen/button_height" android:layout_marginTop="@dimen/space_5" android:text="Select a contact to link" style="@style/Widget.VoiceDeck.Button.Outline" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/nickname_picker"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_6"
+        android:background="@drawable/bg_card"
+        android:orientation="vertical"
+        android:padding="@dimen/space_3"
+        android:visibility="gone">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="@dimen/space_3" android:text="SELECT A CONTACT TO LINK THIS NICKNAME" style="@style/Text.VoiceDeck.Eyebrow" />
+        <TextView android:id="@+id/nickname_contact_sarah" android:layout_width="match_parent" android:layout_height="72dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="Sarah Mitchell&#10;+44 7700 900 138  ›" android:textColor="@color/vd_text" android:textSize="16sp" android:textStyle="bold" />
+        <TextView android:layout_width="match_parent" android:layout_height="72dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="Sarah James&#10;+44 7700 900 452  ›" android:textColor="@color/vd_text" android:textSize="16sp" android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/nickname_confirm"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_8"
+        android:background="@drawable/bg_card"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="@dimen/space_6"
+        android:visibility="gone">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Remember this nickname?" style="@style/Text.VoiceDeck.SectionTitle" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_3" android:gravity="center" android:text="Should I remember Saz as Sarah Mitchell?" style="@style/Text.VoiceDeck.Body" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_5" android:orientation="horizontal">
+            <com.google.android.material.button.MaterialButton android:id="@+id/action_cancel_nickname" android:layout_width="0dp" android:layout_height="@dimen/button_height" android:layout_marginEnd="@dimen/space_2" android:layout_weight="1" android:text="Cancel" style="@style/Widget.VoiceDeck.Button.Outline" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/action_confirm_nickname" android:layout_width="0dp" android:layout_height="@dimen/button_height" android:layout_marginStart="@dimen/space_2" android:layout_weight="1" android:text="Confirm" style="@style/Widget.VoiceDeck.Button.Primary" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

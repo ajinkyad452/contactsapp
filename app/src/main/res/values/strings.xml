@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">VoiceDeck</string>
+    <string name="back">Go back</string>
+    <string name="more_options">More options</string>
+    <string name="settings">Settings</string>
+    <string name="contact_photo">Contact photo for Sarah Mitchell</string>
+    <string-array name="vocabulary_categories">
+        <item>Command</item>
+        <item>Greeting</item>
+        <item>Filler</item>
+    </string-array>
+</resources>

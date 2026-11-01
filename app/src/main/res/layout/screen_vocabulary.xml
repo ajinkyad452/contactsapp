@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/vd_canvas">
+
+<ScrollView
+    android:layout_width="0dp"
+    android:layout_height="0dp"
+    android:clipToPadding="false"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toTopOf="parent"
+    app:layout_constraintWidth_max="@dimen/content_max_width">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/screen_padding">
+
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Manage vocabulary" style="@style/Text.VoiceDeck.Title" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="Fine-tune the phrases VoiceDeck recognises." style="@style/Text.VoiceDeck.Body" />
+
+        <TextView android:id="@+id/vocabulary_language" android:layout_width="match_parent" android:layout_height="72dp" android:layout_marginTop="@dimen/space_5" android:background="@drawable/bg_card" android:gravity="center_vertical" android:padding="@dimen/space_4" android:text="Current language&#10;English (United Kingdom)                                      ›" android:textColor="@color/vd_text" android:textStyle="bold" />
+        <EditText android:id="@+id/vocabulary_search" android:layout_width="match_parent" android:layout_height="@dimen/field_height" android:layout_marginTop="@dimen/space_4" android:hint="Search vocabulary" android:inputType="text" style="@style/Widget.VoiceDeck.Field" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/action_add_vocabulary" android:layout_width="match_parent" android:layout_height="@dimen/button_height_secondary" android:layout_marginTop="@dimen/space_3" android:text="+  Add word or phrase" style="@style/Widget.VoiceDeck.Button.Outline" />
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_5" android:background="@drawable/bg_card" android:orientation="vertical" android:padding="@dimen/space_3">
+            <com.google.android.material.materialswitch.MaterialSwitch android:layout_width="match_parent" android:layout_height="64dp" android:checked="true" android:padding="@dimen/space_2" android:text="Call&#10;Command" android:textColor="@color/vd_text" android:textStyle="bold" />
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />
+            <com.google.android.material.materialswitch.MaterialSwitch android:layout_width="match_parent" android:layout_height="64dp" android:checked="true" android:padding="@dimen/space_2" android:text="Show me&#10;Command" android:textColor="@color/vd_text" android:textStyle="bold" />
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />
+            <com.google.android.material.materialswitch.MaterialSwitch android:layout_width="match_parent" android:layout_height="64dp" android:checked="true" android:padding="@dimen/space_2" android:text="Hey there&#10;Greeting" android:textColor="@color/vd_text" android:textStyle="bold" />
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />
+            <com.google.android.material.materialswitch.MaterialSwitch android:layout_width="match_parent" android:layout_height="64dp" android:checked="false" android:padding="@dimen/space_2" android:text="Umm&#10;Filler" android:textColor="@color/vd_text" android:textStyle="bold" />
+            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />
+            <com.google.android.material.materialswitch.MaterialSwitch android:layout_width="match_parent" android:layout_height="64dp" android:checked="true" android:padding="@dimen/space_2" android:text="Connect me with   • CUSTOM&#10;Command" android:textColor="@color/vd_text" android:textStyle="bold" />
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton android:id="@+id/action_restore_vocabulary" android:layout_width="match_parent" android:layout_height="@dimen/button_height_secondary" android:layout_marginTop="@dimen/space_4" android:text="↻  Restore default vocabulary" style="@style/Widget.VoiceDeck.Button.Text" />
+    </LinearLayout>
+</ScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/vd_canvas">
+
+<LinearLayout
+    android:layout_width="0dp"
+    android:layout_height="0dp"
+    android:orientation="vertical"
+    android:padding="@dimen/screen_padding"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toTopOf="parent"
+    app:layout_constraintWidth_max="@dimen/content_max_width">
+
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Legal" style="@style/Text.VoiceDeck.Title" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="Simple, transparent information about using VoiceDeck." style="@style/Text.VoiceDeck.Body" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_6" android:background="@drawable/bg_card" android:orientation="vertical" android:padding="@dimen/space_3">
+        <TextView android:id="@+id/legal_privacy" android:layout_width="match_parent" android:layout_height="72dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="Privacy Policy&#10;How your information is protected                              ›" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />
+        <TextView android:id="@+id/legal_terms" android:layout_width="match_parent" android:layout_height="72dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="Terms and Conditions&#10;Your agreement with VoiceDeck                              ›" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
+    </LinearLayout>
+
+    <Space android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="VoiceDeck" style="@style/Text.VoiceDeck.SectionTitle" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_1" android:layout_marginBottom="@dimen/space_6" android:gravity="center" android:text="Version 1.0.0" style="@style/Text.VoiceDeck.Caption" />
+</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

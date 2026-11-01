@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <color name="vd_background">#F4EFE5</color>
     <color name="vd_surface">#FFFCF6</color>
@@ -7,4 +7,13 @@
     <color name="vd_text_secondary">#777568</color>
     <color name="vd_sage">#E5EBDD</color>
     <color name="vd_border">#E5DED1</color>
+    <color name="vd_canvas">#F4EFE5</color>
+    <color name="vd_canvas_deep">#EAE2D4</color>
+    <color name="vd_primary_deep">#35503C</color>
+    <color name="vd_text">#28352D</color>
+    <color name="vd_text_muted">#777568</color>
+    <color name="vd_sage_strong">#CEDBC4</color>
+    <color name="vd_white">#FFFFFF</color>
+    <color name="vd_danger">#9D5349</color>
+    <color name="vd_transparent">#00000000</color>
 </resources>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <dimen name="vd_space_xs">4dp</dimen>
     <dimen name="vd_space_sm">8dp</dimen>
@@ -8,4 +8,22 @@
     <dimen name="vd_radius_card">24dp</dimen>
     <dimen name="vd_radius_control">16dp</dimen>
     <dimen name="vd_touch_target_min">56dp</dimen>
+    <dimen name="space_1">4dp</dimen>
+    <dimen name="space_2">8dp</dimen>
+    <dimen name="space_3">12dp</dimen>
+    <dimen name="space_4">16dp</dimen>
+    <dimen name="space_5">20dp</dimen>
+    <dimen name="space_6">24dp</dimen>
+    <dimen name="space_8">32dp</dimen>
+    <dimen name="space_10">40dp</dimen>
+    <dimen name="touch_target">48dp</dimen>
+    <dimen name="button_height">56dp</dimen>
+    <dimen name="button_height_secondary">52dp</dimen>
+    <dimen name="field_height">56dp</dimen>
+    <dimen name="card_radius">22dp</dimen>
+    <dimen name="button_radius">16dp</dimen>
+    <dimen name="screen_padding">20dp</dimen>
+    <dimen name="toolbar_height">64dp</dimen>
+    <dimen name="content_max_width">480dp</dimen>
+    <dimen name="contact_card_height">548dp</dimen>
 </resources>

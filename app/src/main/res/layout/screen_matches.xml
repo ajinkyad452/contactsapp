@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/vd_canvas">
+
+<LinearLayout
+    android:layout_width="0dp"
+    android:layout_height="0dp"
+    android:orientation="vertical"
+    android:padding="@dimen/screen_padding"
+    app:layout_constraintBottom_toBottomOf="parent"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toTopOf="parent"
+    app:layout_constraintWidth_max="@dimen/content_max_width">
+
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="3 POSSIBLE MATCHES" style="@style/Text.VoiceDeck.Eyebrow" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="Which contact did you mean?" style="@style/Text.VoiceDeck.Title" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="Choose the right Sarah to continue." style="@style/Text.VoiceDeck.Body" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_6"
+        android:background="@drawable/bg_card"
+        android:orientation="vertical"
+        android:padding="@dimen/space_3">
+        <TextView android:id="@+id/match_one" android:layout_width="match_parent" android:layout_height="80dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="Sarah Mitchell&#10;+44 7700 900 138                                     ✓" android:textColor="@color/vd_text" android:textSize="16sp" android:textStyle="bold" />
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />
+        <TextView android:id="@+id/match_two" android:layout_width="match_parent" android:layout_height="80dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="Sarah James&#10;+44 7700 900 452                                     ✓" android:textColor="@color/vd_text" android:textSize="16sp" android:textStyle="bold" />
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />
+        <TextView android:id="@+id/match_three" android:layout_width="match_parent" android:layout_height="80dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="Sarah Chen&#10;+44 7700 900 729                                     ✓" android:textColor="@color/vd_text" android:textSize="16sp" android:textStyle="bold" />
+    </LinearLayout>
+
+    <Space android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="None of these look right?" style="@style/Text.VoiceDeck.Body" />
+    <com.google.android.material.button.MaterialButton android:id="@+id/action_none_matches" android:layout_width="match_parent" android:layout_height="@dimen/button_height_secondary" android:layout_marginTop="@dimen/space_2" android:text="I meant someone else" style="@style/Widget.VoiceDeck.Button.Text" />
+</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
