@@ -1,6 +1,13 @@
 package com.ajinkyadube.voicedeck;
 
 import android.Manifest;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.LinearInterpolator;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
@@ -41,6 +48,7 @@ import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.ScrollView;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -84,6 +92,11 @@ public class MainActivity extends Activity {
     private static final int REQ_AUDIO = 102;
 
     private LinearLayout root;
+    private FrameLayout appHost;
+    private View splashOverlay;
+    private AnimatorSet splashAnimations;
+    private final Handler splashHandler = new Handler(Looper.getMainLooper());
+    private Runnable splashFinish;
     private LinearLayout content;
     private TextView statusText;
     private TextView headerBack;
@@ -117,6 +130,7 @@ public class MainActivity extends Activity {
     private boolean showingBack = false;
     private boolean cardTransitionRunning = false;
     private boolean permissionsRequested = false;
+    private int currentFigmaLayout = 0;
     private final ExecutorService imageExecutor = Executors.newFixedThreadPool(2);
 
     @Override protected void onCreate(Bundle savedInstanceState) {
@@ -129,9 +143,49 @@ public class MainActivity extends Activity {
         }
         language = getPreferences(MODE_PRIVATE).getString("language", "en-IN");
         buildBase();
-        showListeningPrompt(false);
         initializeSpeechDictionary();
-        ensurePermissionsAndStart();
+        showAnimatedSplash();
+    }
+
+    private Typeface manropeTypeface;
+
+    private Typeface getManrope() {
+        if (manropeTypeface == null) {
+            manropeTypeface = getResources().getFont(R.font.manrope);
+        }
+        return manropeTypeface;
+    }
+
+    private Typeface dmSansTypeface;
+
+    private Typeface getDmSans() {
+        if (dmSansTypeface == null) {
+            dmSansTypeface = getResources().getFont(R.font.dm_sans);
+        }
+        return dmSansTypeface;
+    }
+
+    private void setDmSans(TextView view, int weight) {
+        Typeface font = getDmSans();
+        if (android.os.Build.VERSION.SDK_INT >= 28) {
+            view.setTypeface(Typeface.create(font, weight, false));
+        } else {
+            view.setTypeface(font, weight >= 600 ? Typeface.BOLD : Typeface.NORMAL);
+        }
+    }
+
+    private void applyManrope(View view) {
+        if (view instanceof TextView) {
+            TextView label = (TextView) view;
+            int style = label.getTypeface() != null ? label.getTypeface().getStyle() : Typeface.NORMAL;
+            label.setTypeface(getManrope(), style);
+        }
+        if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                applyManrope(group.getChildAt(i));
+            }
+        }
     }
 
     private int dp(float value) {
@@ -142,12 +196,13 @@ public class MainActivity extends Activity {
         root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(COLOR_BACKGROUND);
-        root.setPadding(dp(16), dp(44), dp(16), dp(16));
+        //root.setPadding(dp(16), dp(44), dp(16), dp(16));
+        root.setPadding(0, dp(44), 0, dp(16));
 
         LinearLayout top = new LinearLayout(this);
         top.setGravity(Gravity.CENTER_VERTICAL);
         top.setOrientation(LinearLayout.HORIZONTAL);
-        headerBack = centeredText("‹", 34, false, COLOR_PRIMARY);
+        headerBack = centeredText("‹", 24, false, COLOR_PRIMARY);
         headerBack.setGravity(Gravity.CENTER);
         headerBack.setVisibility(View.GONE);
         headerBack.setContentDescription("Back");
@@ -158,8 +213,10 @@ public class MainActivity extends Activity {
         TextView brand = new TextView(this);
         brand.setText("VoiceDeck");
         brand.setTextSize(24);
-        brand.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        setDmSans(brand, 700);
         brand.setTextColor(COLOR_TEXT);
+        brand.setTranslationY(dp(10));
+        brand.setTranslationX(dp(10));
         top.addView(brand, new LinearLayout.LayoutParams(0, dp(52), 1));
         TextView menu = centeredText("⋮", 30, true, COLOR_TEXT);
         menu.setGravity(Gravity.CENTER);
@@ -181,6 +238,7 @@ public class MainActivity extends Activity {
         root.addView(top);
 
         ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
         content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -189,6 +247,7 @@ public class MainActivity extends Activity {
         root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
 
         statusText = new TextView(this);
+        statusText.setTypeface(getManrope());
         statusText.setTextColor(COLOR_SECONDARY);
         statusText.setTextSize(16);
         statusText.setGravity(Gravity.CENTER);
@@ -212,8 +271,104 @@ public class MainActivity extends Activity {
         });
         root.addView(aliasSetupLink);
 
-        setContentView(root);
+        applyManrope(root);
+        setDmSans(brand, 700); // Preserve DM Sans after applying default Manrope.
+        appHost = new FrameLayout(this);
+        appHost.addView(root, new FrameLayout.LayoutParams(-1, -1));
+        setContentView(appHost);
         showListeningPrompt(false);
+    }
+
+    /** Startup-only animation; never runs the microphone or requests audio access. */
+    private void showAnimatedSplash() {
+        FrameLayout overlay = new FrameLayout(this);
+        overlay.setBackgroundColor(COLOR_BACKGROUND);
+        overlay.setClickable(true);
+        splashOverlay = overlay;
+
+        LinearLayout center = new LinearLayout(this);
+        center.setOrientation(LinearLayout.VERTICAL);
+        center.setGravity(Gravity.CENTER);
+        FrameLayout.LayoutParams centerParams = new FrameLayout.LayoutParams(
+                -1, -2, Gravity.CENTER);
+        overlay.addView(center, centerParams);
+
+        FrameLayout artwork = new FrameLayout(this);
+        center.addView(artwork, new LinearLayout.LayoutParams(dp(200), dp(200)));
+
+        View[] rings = new View[2];
+        for (int i = 0; i < rings.length; i++) {
+            View ring = new View(this);
+            GradientDrawable ringShape = new GradientDrawable();
+            ringShape.setShape(GradientDrawable.OVAL);
+            ringShape.setColor(Color.TRANSPARENT);
+            ringShape.setStroke(dp(2), COLOR_PRIMARY);
+            ring.setBackground(ringShape);
+            FrameLayout.LayoutParams rp = new FrameLayout.LayoutParams(
+                    dp(94), dp(94), Gravity.CENTER);
+            artwork.addView(ring, rp);
+            rings[i] = ring;
+        }
+
+        FrameLayout micCircle = new FrameLayout(this);
+        micCircle.setBackground(roundedBackground(COLOR_SAGE, Color.TRANSPARENT, 100));
+        artwork.addView(micCircle, new FrameLayout.LayoutParams(
+                dp(82), dp(82), Gravity.CENTER));
+        ImageView mic = new ImageView(this);
+        mic.setImageResource(R.drawable.ic_mic);
+        mic.setContentDescription("VoiceDeck microphone logo");
+        micCircle.addView(mic, new FrameLayout.LayoutParams(
+                dp(36), dp(36), Gravity.CENTER));
+
+        TextView title = centeredText("VoiceDeck", 30, true, COLOR_TEXT);
+        setDmSans(title, 700);
+        center.addView(title);
+        TextView subtitle = centeredText("Your contacts, just a voice away.",
+                14, false, COLOR_SECONDARY);
+        LinearLayout.LayoutParams subParams = new LinearLayout.LayoutParams(-1, -2);
+        subParams.topMargin = dp(8);
+        center.addView(subtitle, subParams);
+
+        appHost.addView(overlay, new FrameLayout.LayoutParams(-1, -1));
+        splashAnimations = new AnimatorSet();
+        java.util.ArrayList<android.animation.Animator> animations = new java.util.ArrayList<>();
+        for (int i = 0; i < rings.length; i++) {
+            View ring = rings[i];
+            ObjectAnimator scaleX = ObjectAnimator.ofFloat(ring, View.SCALE_X, 0.85f, 2.0f);
+            ObjectAnimator scaleY = ObjectAnimator.ofFloat(ring, View.SCALE_Y, 0.85f, 2.0f);
+            ObjectAnimator alpha = ObjectAnimator.ofFloat(ring, View.ALPHA, 0.5f, 0f);
+            for (ObjectAnimator a : new ObjectAnimator[]{scaleX, scaleY, alpha}) {
+                a.setDuration(1500);
+                a.setStartDelay(i * 750L);
+                a.setRepeatCount(ValueAnimator.INFINITE);
+                a.setInterpolator(new LinearInterpolator());
+                animations.add(a);
+            }
+        }
+        ObjectAnimator pulseX = ObjectAnimator.ofFloat(micCircle, View.SCALE_X, 1f, 1.09f, 1f);
+        ObjectAnimator pulseY = ObjectAnimator.ofFloat(micCircle, View.SCALE_Y, 1f, 1.09f, 1f);
+        for (ObjectAnimator a : new ObjectAnimator[]{pulseX, pulseY}) {
+            a.setDuration(1200);
+            a.setRepeatCount(ValueAnimator.INFINITE);
+            a.setInterpolator(new AccelerateDecelerateInterpolator());
+            animations.add(a);
+        }
+        splashAnimations.playTogether(animations);
+        if (android.provider.Settings.Global.getFloat(getContentResolver(),
+                android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f) {
+            splashAnimations.start();
+        }
+        splashFinish = () -> {
+            if (isFinishing() || isDestroyed()) return;
+            overlay.animate().alpha(0f).setDuration(220).withEndAction(() -> {
+                if (splashAnimations != null) splashAnimations.cancel();
+                appHost.removeView(overlay);
+                splashOverlay = null;
+                splashAnimations = null;
+                ensurePermissionsAndStart();
+            }).start();
+        };
+        splashHandler.postDelayed(splashFinish, 1800);
     }
 
     private TextView text(String value, int size, boolean bold) {
@@ -221,7 +376,8 @@ public class MainActivity extends Activity {
         t.setText(value);
         t.setTextSize(size);
         t.setTextColor(COLOR_TEXT);
-        if (bold) t.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        if (bold) t.setTypeface(Typeface.create(getManrope(), Typeface.BOLD));
+        t.setTypeface(getManrope(), bold ? Typeface.BOLD : Typeface.NORMAL);
         return t;
     }
 
@@ -261,6 +417,7 @@ public class MainActivity extends Activity {
                 dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextSize(16);
             }
         });
+        applyManrope(panel);
         return dialog;
     }
 
@@ -281,14 +438,35 @@ public class MainActivity extends Activity {
 
     private void styleActionButton(Button button, int backgroundColor, int textColor,
                                    int strokeColor, int minHeightDp) {
+        button.setTypeface(getManrope(), Typeface.BOLD);
         button.setAllCaps(false);
         button.setTextSize(18);
         button.setTextColor(textColor);
-        button.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        button.setTypeface(Typeface.create(getManrope(), Typeface.BOLD));
         button.setMinHeight(dp(minHeightDp));
         button.setPadding(dp(18), dp(12), dp(18), dp(12));
         button.setBackground(roundedBackground(backgroundColor, strokeColor, 18));
+        if (android.os.Build.VERSION.SDK_INT >= 21) button.setBackgroundTintList(null);
         if (android.os.Build.VERSION.SDK_INT >= 21) button.setElevation(dp(2));
+    }
+
+    private View showFigmaScreen(int layoutId) {
+        currentFigmaLayout = layoutId;
+        if (statusText != null) statusText.setVisibility(layoutId == R.layout.screen_contact ? View.GONE : View.VISIBLE);
+        content.removeAllViews();
+        content.setGravity(Gravity.TOP);
+        content.setPadding(0, 0, 0, 0);
+        View screen = getLayoutInflater().inflate(layoutId, content, false);
+        int availableHeight = (int) (getResources().getDisplayMetrics().heightPixels
+                / getResources().getDisplayMetrics().density) - 150;
+        content.addView(screen, new LinearLayout.LayoutParams(-1, Math.max(dp(480), dp(availableHeight))));
+        applyManrope(screen);
+        return screen;
+    }
+
+    private void setTextIfPresent(View rootView, int id, CharSequence value) {
+        TextView view = rootView.findViewById(id);
+        if (view != null) view.setText(value);
     }
 
     private void showListeningPrompt(boolean listening) {
@@ -297,99 +475,30 @@ public class MainActivity extends Activity {
         showingDictionaryManager = false;
         if (aliasSetupLink != null) aliasSetupLink.setVisibility(View.GONE);
         pendingAliasForSetup = null;
-        content.removeAllViews();
-        content.setGravity(Gravity.CENTER_HORIZONTAL);
-        content.setPadding(dp(2), dp(18), dp(2), dp(22));
 
-        TextView eyebrow = centeredText("VOICE-FIRST CONTACTS", 11, true, COLOR_SECONDARY);
-        eyebrow.setLetterSpacing(0.14f);
-        content.addView(eyebrow, new LinearLayout.LayoutParams(-1, dp(24)));
-
-        String titleText = language.equals("mr-IN") ? "कोणाशी बोलायचे आहे?" :
-                language.equals("hi-IN") ? "आप किससे जुड़ना चाहते हैं?" :
-                "Who would you like to\nconnect with?";
-        TextView title = centeredText(titleText, 29, true, COLOR_TEXT);
-        title.setLineSpacing(dp(2), 1.0f);
-        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(-1, -2);
-        titleParams.topMargin = dp(8);
-        content.addView(title, titleParams);
-
-        TextView subtitle = centeredText(language.equals("mr-IN") ? "फक्त नाव सांगा. आम्ही संपर्क शोधू." :
-                language.equals("hi-IN") ? "बस नाम बोलिए। हम आपका संपर्क ढूँढेंगे।" :
-                "Just say a name. We'll find the contact for you.", 15, false, COLOR_SECONDARY);
-        subtitle.setPadding(dp(10), dp(8), dp(10), dp(20));
-        content.addView(subtitle, new LinearLayout.LayoutParams(-1, -2));
-
-        LinearLayout voicePanel = new LinearLayout(this);
-        voicePanel.setOrientation(LinearLayout.VERTICAL);
-        voicePanel.setGravity(Gravity.CENTER_HORIZONTAL);
-        voicePanel.setPadding(dp(22), dp(26), dp(22), dp(22));
-        voicePanel.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 26));
-        if (android.os.Build.VERSION.SDK_INT >= 21) voicePanel.setElevation(dp(2));
-        LinearLayout.LayoutParams panelParams = new LinearLayout.LayoutParams(-1, -2);
-        panelParams.topMargin = dp(2);
-        content.addView(voicePanel, panelParams);
-
-        // Soft concentric microphone treatment translated from the Figma prototype.
-        FrameLayout micOrbit = new FrameLayout(this);
-        micOrbit.setBackground(roundedBackground(COLOR_SAGE, Color.TRANSPARENT, 100));
-        LinearLayout.LayoutParams orbitParams = new LinearLayout.LayoutParams(dp(116), dp(116));
-        orbitParams.bottomMargin = dp(18);
-        voicePanel.addView(micOrbit, orbitParams);
-        View orbitRing = new View(this);
-        GradientDrawable ring = new GradientDrawable();
-        ring.setShape(GradientDrawable.OVAL);
-        ring.setColor(Color.TRANSPARENT);
-        ring.setStroke(dp(1), 0x55718A70);
-        FrameLayout.LayoutParams ringParams = new FrameLayout.LayoutParams(dp(94), dp(94), Gravity.CENTER);
-        micOrbit.addView(orbitRing, ringParams);
-        orbitRing.setBackground(ring);
-        TextView mic = centeredText("🎙", 39, false, COLOR_PRIMARY);
-        mic.setBackground(roundedBackground(COLOR_SURFACE, Color.TRANSPARENT, 100));
-        FrameLayout.LayoutParams micParams = new FrameLayout.LayoutParams(dp(68), dp(68), Gravity.CENTER);
-        micOrbit.addView(mic, micParams);
-        mic.setContentDescription("Microphone");
-
-        TextView prompt = centeredText(listening ?
-                (language.equals("mr-IN") ? "ऐकत आहे…" : language.equals("hi-IN") ? "सुन रहा हूँ…" : "I'm listening") :
-                (language.equals("mr-IN") ? "ऐकण्यासाठी तयार" : language.equals("hi-IN") ? "सुनने के लिए तैयार" : "Ready when you are"),
-                20, true, COLOR_TEXT);
-        voicePanel.addView(prompt, new LinearLayout.LayoutParams(-1, -2));
-
-        heardText = centeredText(listening ?
-                (language.equals("mr-IN") ? "संपर्काचे नाव सांगा" : language.equals("hi-IN") ? "कॉन्टैक्ट का नाम बोलिए" : "Say the name naturally, just as you know them.") :
-                (language.equals("mr-IN") ? "मायक्रोफोन बटण दाबा आणि नाव सांगा" : language.equals("hi-IN") ? "माइक बटन दबाएँ और नाम बोलें" : "Tap the button below, then say a contact's name."),
-                14, false, COLOR_SECONDARY);
-        heardText.setPadding(dp(4), dp(7), dp(4), dp(2));
-        voicePanel.addView(heardText, new LinearLayout.LayoutParams(-1, -2));
-
-        Button listen = new Button(this);
-        listen.setText(listening ?
-                (language.equals("mr-IN") ? "ऐकत आहे…" : language.equals("hi-IN") ? "सुन रहा हूँ…" : "Listening…") :
-                (language.equals("mr-IN") ? "बोलण्यासाठी टॅप करा" : language.equals("hi-IN") ? "बोलने के लिए टैप करें" : "Tap to speak"));
-        styleActionButton(listen, COLOR_PRIMARY, Color.WHITE, COLOR_PRIMARY, 56);
-        LinearLayout.LayoutParams listenParams = new LinearLayout.LayoutParams(-1, dp(56));
-        listenParams.topMargin = dp(22);
-        voicePanel.addView(listen, listenParams);
-        listen.setOnClickListener(v -> startListening());
-
-        Button manual = new Button(this);
-        manual.setText(language.equals("mr-IN") ? "⌕   नाव टाइप करा" :
-                language.equals("hi-IN") ? "⌕   नाम टाइप करें" : "⌕   Search by typing instead");
-        styleActionButton(manual, COLOR_SURFACE, COLOR_PRIMARY, COLOR_PRIMARY, 52);
-        LinearLayout.LayoutParams manualParams = new LinearLayout.LayoutParams(-1, dp(52));
-        manualParams.topMargin = dp(10);
-        voicePanel.addView(manual, manualParams);
-        manual.setOnClickListener(v -> showManualSearch());
-
-        TextView privacy = centeredText("◈  Your contacts stay on this phone", 12, false, COLOR_SECONDARY);
-        privacy.setPadding(0, dp(18), 0, dp(2));
-        voicePanel.addView(privacy, new LinearLayout.LayoutParams(-1, -2));
-
-        TextView footer = centeredText("Your simple way to reach the people who matter.", 12, false, COLOR_SECONDARY);
-        footer.setPadding(dp(8), dp(18), dp(8), dp(4));
-        content.addView(footer, new LinearLayout.LayoutParams(-1, -2));
-        statusText.setText(listening ? "Voice search is active. Speak a contact name." : "");
+        View screen = showFigmaScreen(listening ? R.layout.screen_listening : R.layout.screen_home);
+        if (!listening) {
+            Button speak = screen.findViewById(R.id.action_speak);
+            Button manual = screen.findViewById(R.id.action_manual_search);
+            if (speak != null) speak.setOnClickListener(v -> startListening());
+            if (manual != null) manual.setOnClickListener(v -> showManualSearch());
+            statusText.setText("");
+        } else {
+            TextView heard = screen.findViewById(R.id.listening_heard_text);
+            if (heard != null) heardText = heard;
+            Button cancel = screen.findViewById(R.id.action_cancel_listening);
+            Button stop = screen.findViewById(R.id.action_stop_listening);
+            if (cancel != null) cancel.setOnClickListener(v -> {
+                finishListeningSession();
+                showListeningPrompt(false);
+            });
+            if (stop != null) stop.setOnClickListener(v -> {
+                if (speechRecognizer != null) {
+                    try { speechRecognizer.stopListening(); } catch (Exception ignored) { finishListeningSession(); }
+                }
+            });
+            statusText.setText("");
+        }
     }
 
     private void ensurePermissionsAndStart() {
@@ -859,6 +968,7 @@ public class MainActivity extends Activity {
         panel.addView(hint);
 
         EditText search = new EditText(this);
+        search.setTypeface(getManrope());
         search.setSingleLine(true);
         search.setTextSize(17);
         search.setHint("Search contacts");
@@ -979,111 +1089,97 @@ public class MainActivity extends Activity {
     }
 
     private void showMatchChooser(String spoken, List<ContactItem> matches) {
-        final AlertDialog[] dialogHolder = new AlertDialog[1];
-        LinearLayout panel = dialogPanel();
-        panel.addView(dialogTitle("Which contact did you mean?"));
-        TextView subtitle = text("Choose the person you want to reach.", 15, false);
-        subtitle.setTextColor(COLOR_SECONDARY);
-        subtitle.setPadding(0, 0, 0, dp(12));
-        panel.addView(subtitle);
-
-        ScrollView listScroll = new ScrollView(this);
-        listScroll.setFillViewport(false);
-        LinearLayout rows = new LinearLayout(this);
-        rows.setOrientation(LinearLayout.VERTICAL);
-        for (int i = 0; i < matches.size(); i++) {
-            final int selectedIndex = i;
-            ContactItem match = matches.get(i);
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.VERTICAL);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(dp(16), dp(13), dp(16), dp(13));
-            row.setBackground(roundedBackground(COLOR_BACKGROUND, COLOR_BORDER, 16));
-            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
-            rowParams.bottomMargin = dp(9);
-            rows.addView(row, rowParams);
-
-            TextView name = text(match.name, 18, true);
-            row.addView(name);
-            TextView phone = text(match.phone == null || match.phone.isEmpty()
-                    ? "No mobile number saved" : match.phone, 15, false);
-            phone.setTextColor(COLOR_SECONDARY);
-            LinearLayout.LayoutParams phoneParams = new LinearLayout.LayoutParams(-1, -2);
-            phoneParams.topMargin = dp(4);
-            row.addView(phone, phoneParams);
-
-            row.setClickable(true);
-            row.setFocusable(true);
-            row.setOnClickListener(v -> {
-                // Keep the complete result set so Previous / Next can browse these matches.
-                dialogHolder[0].dismiss();
-                currentMatches = new ArrayList<>(matches);
-                currentIndex = selectedIndex;
-                showCard(false);
-            });
-        }
-        listScroll.addView(rows);
-        panel.addView(listScroll, new LinearLayout.LayoutParams(-1, -2));
-
-        AlertDialog dialog = new AlertDialog.Builder(this).setView(panel)
-                .setNegativeButton("Search again", (d, w) -> startListening())
-                .setNeutralButton("Cancel", null).create();
-        dialogHolder[0] = dialog;
-        dialog.setOnShowListener(ignored -> {
-            if (dialog.getWindow() != null) {
-                dialog.getWindow().setBackgroundDrawable(
-                        roundedBackground(COLOR_SURFACE, COLOR_BORDER, 24));
+        setSecondaryHeader(true);
+        View screen = showFigmaScreen(R.layout.screen_matches);
+        LinearLayout list = screen.findViewById(R.id.match_list);
+        if (list != null) {
+            list.removeAllViews();
+            for (int i = 0; i < matches.size(); i++) {
+                final int selectedIndex = i;
+                ContactItem match = matches.get(i);
+                TextView row = text(match.name + "\n" +
+                        (match.phone == null || match.phone.isEmpty()
+                                ? "No mobile number saved" : match.phone) + "   ›", 16, true);
+                row.setPadding(dp(14), dp(16), dp(14), dp(16));
+                row.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 14));
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+                params.bottomMargin = dp(8);
+                list.addView(row, params);
+                row.setOnClickListener(v -> {
+                    currentMatches = new ArrayList<>(matches);
+                    currentIndex = selectedIndex;
+                    showCard(false);
+                });
             }
-            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(COLOR_PRIMARY);
-            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(COLOR_SECONDARY);
-        });
-        dialog.show();
+        }
+        Button none = screen.findViewById(R.id.action_none_matches);
+        if (none != null) none.setOnClickListener(v -> showManualSearch());
+        statusText.setText("");
     }
 
     private void showManualSearch() {
-        LinearLayout panel = dialogPanel();
-        panel.addView(dialogTitle("Search contacts"));
-        TextView hint = text("Type the name of the person you're looking for.", 15, false);
-        hint.setTextColor(COLOR_SECONDARY);
-        hint.setPadding(0, 0, 0, dp(12));
-        panel.addView(hint);
-
-        EditText input = new EditText(this);
-        input.setSingleLine(true);
-        input.setTextSize(19);
-        input.setTextColor(COLOR_TEXT);
-        input.setHintTextColor(COLOR_SECONDARY);
-        input.setHint("Enter contact name");
-        input.setPadding(dp(14), dp(12), dp(14), dp(12));
-        input.setBackground(roundedBackground(COLOR_BACKGROUND, COLOR_BORDER, 14));
-        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
-        panel.addView(input, new LinearLayout.LayoutParams(-1, dp(60)));
-
-        AlertDialog dialog = new AlertDialog.Builder(this).setView(panel)
-                .setPositiveButton("Search", null)
-                .setNegativeButton("Cancel", null).create();
-        dialog.setOnShowListener(ignored -> {
-            if (dialog.getWindow() != null) {
-                dialog.getWindow().setBackgroundDrawable(
-                        roundedBackground(COLOR_SURFACE, COLOR_BORDER, 24));
-            }
-            Button search = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            Button cancel = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-            search.setTextColor(COLOR_PRIMARY);
-            cancel.setTextColor(COLOR_SECONDARY);
-            search.setOnClickListener(v -> {
-                String query = input.getText().toString().trim();
-                if (query.isEmpty()) {
-                    input.setError("Enter a contact name");
-                    input.requestFocus();
-                } else {
-                    dialog.dismiss();
-                    findContact(query, true);
+        setSecondaryHeader(true);
+        View screen = showFigmaScreen(R.layout.screen_search);
+        EditText input = screen.findViewById(R.id.search_input);
+        LinearLayout results = screen.findViewById(R.id.search_results);
+        View empty = screen.findViewById(R.id.search_empty);
+        View noResults = screen.findViewById(R.id.search_no_results);
+        if (results != null) results.setVisibility(View.GONE);
+        if (empty != null) empty.setVisibility(View.VISIBLE);
+        if (noResults != null) noResults.setVisibility(View.GONE);
+        if (input == null || results == null) return;
+        input.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String q = s.toString().trim().toLowerCase(Locale.ROOT);
+                results.removeAllViews();
+                if (q.isEmpty()) {
+                    results.setVisibility(View.GONE);
+                    if (empty != null) empty.setVisibility(View.VISIBLE);
+                    if (noResults != null) noResults.setVisibility(View.GONE);
+                    return;
                 }
-            });
-            input.requestFocus();
+                if (empty != null) empty.setVisibility(View.GONE);
+                int found = 0;
+                for (ContactItem contact : contacts) {
+                    String name = safe(contact.name).toLowerCase(Locale.ROOT);
+                    String phone = safe(contact.phone).toLowerCase(Locale.ROOT);
+                    if (!name.contains(q) && !phone.contains(q)) continue;
+                    LinearLayout row = new LinearLayout(MainActivity.this);
+                    row.setGravity(Gravity.CENTER_VERTICAL);
+                    row.setPadding(dp(12), dp(11), dp(12), dp(11));
+                    TextView avatar = text(initials(contact.name), 13, true);
+                    avatar.setGravity(Gravity.CENTER);
+                    avatar.setTextColor(COLOR_PRIMARY);
+                    avatar.setBackground(roundedBackground(0xFFE5EBDD, 0xFFE5EBDD, 100));
+                    row.addView(avatar, new LinearLayout.LayoutParams(dp(42), dp(42)));
+                    LinearLayout labels = new LinearLayout(MainActivity.this);
+                    labels.setOrientation(LinearLayout.VERTICAL);
+                    labels.setPadding(dp(12), 0, 0, 0);
+                    labels.addView(text(contact.name, 15, true));
+                    TextView phoneLabel = text(contact.phone == null || contact.phone.isEmpty()
+                            ? "No phone number" : contact.phone, 12, false);
+                    phoneLabel.setTextColor(COLOR_SECONDARY);
+                    labels.addView(phoneLabel);
+                    row.addView(labels, new LinearLayout.LayoutParams(0, -2, 1));
+                    row.addView(iconAction("›", COLOR_PRIMARY, "Open contact"),
+                            new LinearLayout.LayoutParams(dp(30), dp(44)));
+                    results.addView(row);
+                    addThinDivider(results);
+                    row.setOnClickListener(v -> {
+                        currentMatches = new ArrayList<>();
+                        currentMatches.add(contact);
+                        currentIndex = 0;
+                        showCard(false);
+                    });
+                    found++;
+                }
+                results.setVisibility(found > 0 ? View.VISIBLE : View.GONE);
+                if (noResults != null) noResults.setVisibility(found == 0 ? View.VISIBLE : View.GONE);
+            }
+            @Override public void afterTextChanged(Editable s) { }
         });
-        dialog.show();
+        statusText.setText("");
     }
 
     private void showContactPhoto(FrameLayout frame, Bitmap bitmap) {
@@ -1191,193 +1287,135 @@ public class MainActivity extends Activity {
                 .start();
     }
 
+    private void addContactDetailRow(LinearLayout parent, int iconRes, String label, String value) {
+        if (parent == null || value == null || value.trim().isEmpty()) return;
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.TOP);
+        row.setPadding(0, dp(8), 0, dp(8));
+
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(iconRes);
+        icon.setPadding(dp(10), dp(10), dp(10), dp(10));
+        icon.setBackground(roundedBackground(Color.rgb(229, 235, 221), Color.TRANSPARENT, 12));
+        row.addView(icon, new LinearLayout.LayoutParams(dp(38), dp(38)));
+
+        LinearLayout texts = new LinearLayout(this);
+        texts.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams textLp = new LinearLayout.LayoutParams(0, -2, 1f);
+        textLp.leftMargin = dp(12);
+        row.addView(texts, textLp);
+        TextView title = new TextView(this);
+        title.setTypeface(getManrope());
+        title.setText(label);
+        title.setTextSize(11);
+        title.setTextColor(Color.rgb(119, 117, 104));
+        texts.addView(title);
+        TextView data = new TextView(this);
+        data.setTypeface(getManrope());
+        data.setText(value.trim());
+        data.setTextSize(13);
+        data.setTypeface(getManrope(), Typeface.BOLD);
+        data.setTextColor(Color.rgb(40, 53, 45));
+        data.setMaxLines(3);
+        texts.addView(data);
+        parent.addView(row, new LinearLayout.LayoutParams(-1, -2));
+    }
+
     private void showCard(boolean back) {
         if (currentMatches.isEmpty()) return;
         showingBack = back;
+        setSecondaryHeader(false);
         ContactItem item = currentMatches.get(Math.max(0, Math.min(currentIndex, currentMatches.size() - 1)));
-        content.removeAllViews();
-        content.setGravity(Gravity.TOP);
-        content.setPadding(dp(2), dp(10), dp(2), dp(16));
+        View screen = showFigmaScreen(R.layout.screen_contact);
 
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(16), dp(16), dp(16), dp(16));
-        card.setGravity(Gravity.CENTER_HORIZONTAL | Gravity.CENTER_VERTICAL);
-        card.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 26));
-        if (android.os.Build.VERSION.SDK_INT >= 21) card.setElevation(dp(3));
+        View front = screen.findViewById(R.id.contact_front);
+        View rear = screen.findViewById(R.id.contact_back);
+        if (front != null) front.setVisibility(back ? View.GONE : View.VISIBLE);
+        if (rear != null) rear.setVisibility(back ? View.VISIBLE : View.GONE);
 
-        if (!back) {
-            TextView eyebrow = centeredText("CONTACT CARD", 12, true, COLOR_SECONDARY);
-            eyebrow.setLetterSpacing(0.12f);
-            card.addView(eyebrow, new LinearLayout.LayoutParams(-1, dp(28)));
+        setTextIfPresent(screen, R.id.contact_name, item.name);
+        setTextIfPresent(screen, R.id.contact_back_name, item.name);
+        setTextIfPresent(screen, R.id.contact_phone,
+                item.phone == null || item.phone.isEmpty() ? "No mobile number saved" : item.phone);
+        LinearLayout contactRows = screen.findViewById(R.id.contact_detail_rows);
+        if (contactRows != null) {
+            addContactDetailRow(contactRows, R.drawable.ic_contact_mail, "Email", item.email);
+            addContactDetailRow(contactRows, R.drawable.ic_contact_building, "Company", item.company);
+            addContactDetailRow(contactRows, R.drawable.ic_contact_calendar, "Birthday", item.birthday);
+            addContactDetailRow(contactRows, R.drawable.ic_contact_pin, "Address", item.address);
+            View empty = screen.findViewById(R.id.contact_no_details);
+            if (empty != null) empty.setVisibility(contactRows.getChildCount() == 0 ? View.VISIBLE : View.GONE);
+        }
+        setTextIfPresent(screen, R.id.contact_count,
+                (currentIndex + 1) + " of " + currentMatches.size());
 
-            LinearLayout.LayoutParams photoParams = new LinearLayout.LayoutParams(-1, dp(216));
-            photoParams.topMargin = dp(8);
-            FrameLayout photoFrame = new FrameLayout(this);
-            photoFrame.setBackground(roundedBackground(COLOR_SAGE, Color.TRANSPARENT, 22));
-            photoFrame.setClipToOutline(true);
-            card.addView(photoFrame, photoParams);
-            Bitmap contactBitmap = null;
+        ImageView photo = screen.findViewById(R.id.contact_photo);
+        if (photo != null) {
+            Bitmap bitmap = null;
             if (item.photo != null) {
                 try (java.io.InputStream stream = getContentResolver().openInputStream(item.photo)) {
-                    contactBitmap = BitmapFactory.decodeStream(stream);
+                    bitmap = BitmapFactory.decodeStream(stream);
                 } catch (Exception ignored) { }
             }
-            if (contactBitmap != null) {
-                showContactPhoto(photoFrame, contactBitmap);
+            if (bitmap != null) {
+                photo.setImageBitmap(bitmap);
+                photo.setScaleType(ImageView.ScaleType.CENTER_CROP);
             } else {
-                ImageView fallback = new ImageView(this);
-                fallback.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                fallback.setImageResource(R.drawable.voicedeck_default);
-
-                photoFrame.addView(
-                    fallback,
-                    new FrameLayout.LayoutParams(-1, -1)
-                );
+                photo.setImageResource(R.drawable.voicedeck_default);
+                photo.setScaleType(ImageView.ScaleType.CENTER_CROP);
             }
+        }
 
-            TextView name = centeredText(item.name, 28, true, COLOR_TEXT);
-            name.setPadding(dp(4), dp(18), dp(4), dp(6));
-            card.addView(name, new LinearLayout.LayoutParams(-1, -2));
+        Button call = screen.findViewById(R.id.action_call);
+        Button whatsapp = screen.findViewById(R.id.action_whatsapp);
+        TextView details = screen.findViewById(R.id.action_show_details);
+        Button google = screen.findViewById(R.id.action_google_contacts);
+        Button backToFront = screen.findViewById(R.id.action_show_front);
+        Button previous = screen.findViewById(R.id.action_previous_contact);
+        Button next = screen.findViewById(R.id.action_next_contact);
+        ImageView mic = screen.findViewById(R.id.action_contact_mic);
 
-            TextView phone = centeredText(item.phone.isEmpty() ? "No mobile number saved" : item.phone,
-                    19, false, COLOR_SECONDARY);
-            phone.setPadding(0, 0, 0, dp(18));
-            card.addView(phone, new LinearLayout.LayoutParams(-1, -2));
-
-            View divider = new View(this);
-            divider.setBackgroundColor(COLOR_BORDER);
-            LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(-1, dp(1));
-            dividerParams.bottomMargin = dp(16);
-            card.addView(divider, dividerParams);
-
-            LinearLayout actions = new LinearLayout(this);
-            actions.setOrientation(LinearLayout.HORIZONTAL);
-            actions.setGravity(Gravity.CENTER);
-            Button call = new Button(this);
-            call.setText("☎  Call");
-            styleActionButton(call, COLOR_PRIMARY, Color.WHITE, COLOR_PRIMARY, 56);
-            Button whatsapp = new Button(this);
-            whatsapp.setText("◉  WhatsApp");
-            styleActionButton(whatsapp, COLOR_SAGE, COLOR_PRIMARY, COLOR_SAGE, 56);
-            LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(0, dp(56), 1);
-            actionParams.setMargins(dp(3), 0, dp(6), 0);
-            actions.addView(call, actionParams);
-            LinearLayout.LayoutParams whatsappParams = new LinearLayout.LayoutParams(0, dp(56), 1);
-            whatsappParams.setMargins(dp(6), 0, dp(3), 0);
-            actions.addView(whatsapp, whatsappParams);
-            call.setOnClickListener(v -> callContact(item));
-            whatsapp.setOnClickListener(v -> openWhatsApp(item));
-            card.addView(actions);
-
-            TextView hint = centeredText("Tap for email, birthday and other details", 13,
-                    false, COLOR_SECONDARY);
-            hint.setPadding(0, dp(14), 0, dp(2));
-            card.addView(hint, new LinearLayout.LayoutParams(-1, -2));
-            card.setContentDescription("Contact card. Double tap to view more details.");
-            card.setClickable(true);
-            card.setFocusable(true);
-            card.setOnClickListener(v -> flipContactCard(true));
-        } else {
-            TextView eyebrow = centeredText("CONTACT DETAILS", 12, true, COLOR_SECONDARY);
-            eyebrow.setLetterSpacing(0.12f);
-            card.addView(eyebrow, new LinearLayout.LayoutParams(-1, dp(30)));
-
-            TextView name = centeredText(item.name, 25, true, COLOR_TEXT);
-            name.setPadding(dp(4), dp(8), dp(4), dp(16));
-            card.addView(name, new LinearLayout.LayoutParams(-1, -2));
-
-            addDetail(card, "✉", "Email", item.email);
-            addDetail(card, "▣", "Company / Designation", item.company);
-            addDetail(card, "▦", "Birthday", item.birthday);
-            addDetail(card, "⌖", "Address", item.address);
-            addDetail(card, "☎", "Mobile", item.phone);
-
-            View divider = new View(this);
-            divider.setBackgroundColor(COLOR_BORDER);
-            LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(-1, dp(1));
-            dividerParams.topMargin = dp(14);
-            dividerParams.bottomMargin = dp(14);
-            card.addView(divider, dividerParams);
-
-            Button google = new Button(this);
-            google.setText("Open in Google Contacts");
-            styleActionButton(google, COLOR_SAGE, COLOR_PRIMARY, COLOR_SAGE, 58);
-            google.setOnClickListener(v -> {
-                Intent i = new Intent(Intent.ACTION_VIEW,
+        if (call != null) call.setOnClickListener(v -> callContact(item));
+        if (whatsapp != null) whatsapp.setOnClickListener(v -> openWhatsApp(item));
+        if (details != null) details.setOnClickListener(v -> flipContactCard(true));
+        if (backToFront != null) backToFront.setOnClickListener(v -> flipContactCard(false));
+        View flipIcon = screen.findViewById(R.id.action_flip_icon);
+        if (flipIcon != null) flipIcon.setOnClickListener(v -> flipContactCard(!showingBack));
+        if (google != null) google.setOnClickListener(v -> {
+            try {
+                Intent intent = new Intent(Intent.ACTION_VIEW,
                         ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, item.id));
-                try { startActivity(i); }
-                catch (Exception e) { Toast.makeText(this, "Contacts app unavailable.", Toast.LENGTH_SHORT).show(); }
+                startActivity(intent);
+            } catch (Exception ex) {
+                Toast.makeText(this, "Unable to open this contact.", Toast.LENGTH_SHORT).show();
+            }
+        });
+        boolean canBrowse = currentMatches.size() > 1;
+        if (previous != null) {
+            previous.setEnabled(canBrowse);
+            previous.setAlpha(canBrowse ? 1f : 0.4f);
+            previous.setOnClickListener(v -> {
+                if (currentMatches.size() > 1) {
+                    currentIndex = (currentIndex - 1 + currentMatches.size()) % currentMatches.size();
+                    showCard(showingBack);
+                }
             });
-            card.addView(google, new LinearLayout.LayoutParams(-1, dp(58)));
-
-            Button backToCard = new Button(this);
-            backToCard.setText("← Back to contact card");
-            styleActionButton(backToCard, COLOR_SURFACE, COLOR_PRIMARY, COLOR_BORDER, 56);
-            backToCard.setOnClickListener(v -> flipContactCard(false));
-            LinearLayout.LayoutParams backParams = new LinearLayout.LayoutParams(-1, dp(58));
-            backParams.topMargin = dp(10);
-            card.addView(backToCard, backParams);
         }
-
-        // Keep front and back card shells identical in height so navigation never jumps.
-        content.addView(card, new LinearLayout.LayoutParams(-1, dp(635)));
-
-
-        LinearLayout nav = new LinearLayout(this);
-        nav.setGravity(Gravity.CENTER);
-        nav.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams navParams = new LinearLayout.LayoutParams(-1, dp(72));
-        navParams.topMargin = dp(12);
-        Button prev = new Button(this);
-        prev.setText("‹  Previous");
-        styleActionButton(prev, COLOR_SAGE, COLOR_PRIMARY, COLOR_SAGE, 54);
-        Button next = new Button(this);
-        next.setText("Next  ›");
-        styleActionButton(next, COLOR_SAGE, COLOR_PRIMARY, COLOR_SAGE, 54);
-        Button record = new Button(this);
-        record.setText("🎙");
-        record.setContentDescription("Record another contact");
-        record.setTextSize(27);
-        record.setGravity(Gravity.CENTER);
-        record.setPadding(0, 0, 0, 0);
-        record.setMinWidth(dp(68));
-        record.setMinHeight(dp(68));
-        record.setBackground(roundedBackground(COLOR_PRIMARY, COLOR_PRIMARY, 100));
-        record.setTextColor(Color.WHITE);
-        record.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-        if (android.os.Build.VERSION.SDK_INT >= 21) record.setElevation(dp(3));
-        nav.addView(prev, new LinearLayout.LayoutParams(0, dp(56), 1));
-        LinearLayout.LayoutParams recordParams = new LinearLayout.LayoutParams(dp(68), dp(68));
-        recordParams.leftMargin = dp(10);
-        recordParams.rightMargin = dp(10);
-        nav.addView(record, recordParams);
-        nav.addView(next, new LinearLayout.LayoutParams(0, dp(56), 1));
-        record.setOnClickListener(v -> returnToVoiceSearch());
-        TextView count = centeredText((currentIndex + 1) + " of " + currentMatches.size(), 13, true, COLOR_SECONDARY);
-        LinearLayout.LayoutParams countParams = new LinearLayout.LayoutParams(-1, dp(28));
-        boolean canBrowseMatches = currentMatches.size() > 1;
-        prev.setEnabled(canBrowseMatches);
-        next.setEnabled(canBrowseMatches);
-        if (!canBrowseMatches) {
-            prev.setAlpha(0.45f);
-            next.setAlpha(0.45f);
+        if (next != null) {
+            next.setEnabled(canBrowse);
+            next.setAlpha(canBrowse ? 1f : 0.4f);
+            next.setOnClickListener(v -> {
+                if (currentMatches.size() > 1) {
+                    currentIndex = (currentIndex + 1) % currentMatches.size();
+                    showCard(showingBack);
+                }
+            });
         }
-        prev.setOnClickListener(v -> {
-            if (currentMatches.size() > 1) {
-                currentIndex = (currentIndex - 1 + currentMatches.size()) % currentMatches.size();
-                showCard(showingBack);
-            }
-        });
-        next.setOnClickListener(v -> {
-            if (currentMatches.size() > 1) {
-                currentIndex = (currentIndex + 1) % currentMatches.size();
-                showCard(showingBack);
-            }
-        });
-        content.addView(nav, navParams);
-        content.addView(count, countParams);
-        statusText.setText(back ? "Contact details. Return to the card or record another contact." : "Contact found. Choose Call or WhatsApp.");
+        if (mic != null) mic.setOnClickListener(v -> returnToVoiceSearch());
+        statusText.setText(back
+                ? "Contact details. Return to the card or record another contact."
+                : "Contact found. Choose Call or WhatsApp.");
     }
 
     private String getInitials(String name) {
@@ -1398,6 +1436,7 @@ public class MainActivity extends Activity {
 
     private Button actionButton(String label) {
         Button b = new Button(this);
+        b.setTypeface(getManrope());
         b.setText(label);
         b.setAllCaps(false);
         b.setTextSize(18);
@@ -1539,200 +1578,178 @@ public class MainActivity extends Activity {
 
     private void showSettings() {
         setSecondaryHeader(true);
+
+        headerBack.setVisibility(View.VISIBLE);
+        headerBack.setOnClickListener(v -> showListeningPrompt(false));
+
         showingDictionaryManager = false;
         showingAliasManager = false;
-        content.removeAllViews();
-        content.setGravity(Gravity.TOP);
-        content.setPadding(dp(2), dp(14), dp(2), dp(22));
-        TextView heading = centeredText("SETTINGS", 12, true, COLOR_SECONDARY);
-        heading.setLetterSpacing(0.13f);
-        content.addView(heading, new LinearLayout.LayoutParams(-1, dp(28)));
-        TextView title = centeredText("Make VoiceDeck yours", 25, true, COLOR_TEXT);
-        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-1, -2);
-        tp.bottomMargin = dp(8); content.addView(title, tp);
 
-        addSettingsSection("Voice preferences");
-        addSettingsRow("Voice search language", "Choose the language you speak", currentLanguageName(),
-                () -> showLanguageChooser());
-
-        addSettingsSection("Personalisation");
-        addSettingsRow("Manage vocabulary", "Words and phrases recognised by VoiceDeck", null,
-                () -> showDictionaryManager(language));
-        addSettingsRow("Manage aliases", "Nicknames linked to your contacts", null,
-                () -> showAliasManager());
-
-        addSettingsSection("About & privacy");
-        addSettingsRow("App permissions", "Contacts and microphone access", null, () -> showPermissionsDialog());
-        addSettingsRow("Legal", "Privacy policy and terms of use", null, () -> showLegalDialog());
+        View screen = showFigmaScreen(R.layout.screen_settings);
+        setTextIfPresent(screen, R.id.setting_language_value, currentLanguageName());
+        View languageRow = screen.findViewById(R.id.setting_language);
+        View vocabularyRow = screen.findViewById(R.id.setting_vocabulary);
+        View aliasesRow = screen.findViewById(R.id.setting_aliases);
+        View permissionsRow = screen.findViewById(R.id.setting_permissions);
+        View legalRow = screen.findViewById(R.id.setting_legal);
+        if (languageRow != null) languageRow.setOnClickListener(v -> showLanguageChooser());
+        if (vocabularyRow != null) vocabularyRow.setOnClickListener(v -> showDictionaryManager(language));
+        if (aliasesRow != null) aliasesRow.setOnClickListener(v -> showAliasManager());
+        if (permissionsRow != null) permissionsRow.setOnClickListener(v -> showPermissionsDialog());
+        if (legalRow != null) legalRow.setOnClickListener(v -> showLegalDialog());
         statusText.setText("");
     }
 
     private void showPermissionsDialog() {
-        LinearLayout panel = dialogPanel();
-        panel.addView(dialogTitle("App permissions"));
-        addPermissionStatus(panel, "Contacts", Manifest.permission.READ_CONTACTS);
-        addPermissionStatus(panel, "Microphone", Manifest.permission.RECORD_AUDIO);
-        TextView note = text("Contacts access helps VoiceDeck find people. The microphone is used only after you tap to speak.", 14, false);
-        note.setTextColor(COLOR_SECONDARY); panel.addView(note);
-        new AlertDialog.Builder(this).setView(panel).setPositiveButton("Close", null).show();
+        setSecondaryHeader(true);
+        View screen = showFigmaScreen(R.layout.screen_permissions);
+        android.widget.Switch microphone = screen.findViewById(R.id.permission_microphone);
+        android.widget.Switch contactsSwitch = screen.findViewById(R.id.permission_contacts);
+        boolean micGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+                == PackageManager.PERMISSION_GRANTED;
+        boolean contactsGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS)
+                == PackageManager.PERMISSION_GRANTED;
+        if (microphone != null) {
+            microphone.setChecked(micGranted);
+            microphone.setOnClickListener(v -> openAppPermissionSettings());
+        }
+        if (contactsSwitch != null) {
+            contactsSwitch.setChecked(contactsGranted);
+            contactsSwitch.setOnClickListener(v -> openAppPermissionSettings());
+        }
+        statusText.setText("");
+    }
+
+    private void openAppPermissionSettings() {
+        try {
+            Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
+        } catch (Exception ignored) {
+            Toast.makeText(this, "Open Android Settings to manage app permissions.", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void showLegalDialog() {
-        new AlertDialog.Builder(this).setTitle("Legal")
-                .setItems(new String[]{"Privacy Policy", "Terms & Conditions"}, (dialog, which) -> {
-                    if (which == 0) openLegalPage("https://ajinkyadube.com/apps/privacy.html");
-                    else openLegalPage("https://ajinkyadube.com/apps/terms.html");
-                }).setNegativeButton("Close", null).show();
+        setSecondaryHeader(true);
+        View screen = showFigmaScreen(R.layout.screen_legal);
+        View privacy = screen.findViewById(R.id.legal_privacy);
+        View terms = screen.findViewById(R.id.legal_terms);
+        if (privacy != null) privacy.setOnClickListener(v ->
+                openLegalPage("https://ajinkyadube.com/apps/privacy.html"));
+        if (terms != null) terms.setOnClickListener(v ->
+                openLegalPage("https://ajinkyadube.com/apps/terms.html"));
+        statusText.setText("");
     }
 
-    /** Displays all locally saved aliases and their linked Android contacts. */
     private void showAliasManager() {
         setSecondaryHeader(true);
         showingAliasManager = true;
         showingDictionaryManager = false;
         if (!contactsLoaded) loadContacts();
-        content.removeAllViews();
-        content.setGravity(Gravity.TOP);
-        content.setPadding(dp(2), dp(14), dp(2), dp(22));
+        View screen = showFigmaScreen(R.layout.screen_aliases);
         statusText.setText("");
-
-        TextView heading = centeredText("CONTACT ALIASES", 13, true, COLOR_SECONDARY);
-        heading.setLetterSpacing(0.12f);
-        content.addView(heading, new LinearLayout.LayoutParams(-1, dp(34)));
-        TextView title = centeredText("Manage aliases", 26, true, COLOR_TEXT);
-        content.addView(title, new LinearLayout.LayoutParams(-1, -2));
-        TextView description = text(
-                "Add, edit or remove the nicknames VoiceDeck uses to find your contacts. " +
-                        "Aliases are stored only on this device.", 14, false);
-        description.setTextColor(COLOR_SECONDARY);
-        description.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams descriptionParams = new LinearLayout.LayoutParams(-1, -2);
-        descriptionParams.setMargins(dp(8), dp(8), dp(8), dp(14));
-        content.addView(description, descriptionParams);
-
-        Button add = new Button(this);
-        add.setText("Add alias");
-        styleActionButton(add, COLOR_PRIMARY, Color.WHITE, COLOR_PRIMARY, 52);
-        content.addView(add, new LinearLayout.LayoutParams(-1, dp(54)));
-        add.setOnClickListener(v -> showAliasEditor(null));
-
-        EditText search = new EditText(this);
-        search.setSingleLine(true);
-        search.setTextSize(16);
-        search.setHint("Search aliases or contacts");
-        search.setPadding(dp(14), dp(8), dp(14), dp(8));
-        search.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 14));
-        LinearLayout.LayoutParams searchParams = new LinearLayout.LayoutParams(-1, dp(54));
-        searchParams.topMargin = dp(12);
-        content.addView(search, searchParams);
-
-        LinearLayout listCard = new LinearLayout(this);
-        listCard.setOrientation(LinearLayout.VERTICAL);
-        listCard.setPadding(dp(14), dp(14), dp(14), dp(14));
-        listCard.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 20));
-        LinearLayout.LayoutParams listParams = new LinearLayout.LayoutParams(-1, -2);
-        listParams.topMargin = dp(12);
-        content.addView(listCard, listParams);
-        listCard.addView(text("Saved aliases", 18, true));
-        TextView loading = text("Loading aliases…", 14, false);
-        loading.setTextColor(COLOR_SECONDARY);
-        LinearLayout.LayoutParams loadingParams = new LinearLayout.LayoutParams(-1, -2);
-        loadingParams.topMargin = dp(10);
-        listCard.addView(loading, loadingParams);
-
-        // Return to Settings using the standard Android Back action.
-
+        Button add = screen.findViewById(R.id.action_add_alias);
+        EditText search = screen.findViewById(R.id.alias_search);
+        LinearLayout list = screen.findViewById(R.id.alias_list);
+        TextView empty = screen.findViewById(R.id.alias_empty);
+        TextView count = screen.findViewById(R.id.alias_count);
+        if (add != null) add.setOnClickListener(v -> showAliasEditor(null));
         if (contactAliasRepository == null) {
             initializeSpeechDictionary();
-            loading.setText("Preparing alias storage. Please reopen this screen in a moment.");
+            if (empty != null) empty.setText("Preparing alias storage. Please reopen this screen in a moment.");
             return;
         }
         contactAliasRepository.getAllAliases(new ContactAliasRepository.ResultCallback<List<ContactAlias>>() {
             @Override public void onSuccess(List<ContactAlias> aliases) {
-                if (isFinishing() || isDestroyed() || !showingAliasManager) return;
-                listCard.removeView(loading);
-                TextView empty = text("No aliases saved yet. Add a nickname to get started.", 14, false);
-                empty.setTextColor(COLOR_SECONDARY);
-                listCard.addView(empty);
-                Runnable render = () -> renderAliasRows(listCard, empty, aliases,
-                        search.getText() == null ? "" : search.getText().toString());
-                search.addTextChangedListener(new TextWatcher() {
-                    @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
-                    @Override public void onTextChanged(CharSequence s, int start, int before, int count) { render.run(); }
+                if (isFinishing() || isDestroyed() || !showingAliasManager || list == null || empty == null) return;
+                if (count != null) count.setText(aliases.size() + " SAVED ALIASES");
+                Runnable render = () -> renderAliasRows(list, empty, aliases,
+                        search == null || search.getText() == null ? "" : search.getText().toString());
+                if (search != null) search.addTextChangedListener(new TextWatcher() {
+                    @Override public void beforeTextChanged(CharSequence s, int start, int c, int a) { }
+                    @Override public void onTextChanged(CharSequence s, int start, int before, int c) { render.run(); }
                     @Override public void afterTextChanged(Editable s) { }
                 });
                 render.run();
             }
             @Override public void onError(Exception error) {
-                if (isFinishing() || isDestroyed() || !showingAliasManager) return;
-                loading.setText("Couldn't load saved aliases. Please try again.");
+                if (!isFinishing() && !isDestroyed() && showingAliasManager && empty != null)
+                    empty.setText("Couldn't load saved aliases. Please try again.");
             }
         });
     }
 
-    private void renderAliasRows(LinearLayout parent, TextView empty,
+    private void renderAliasRows(LinearLayout list, TextView empty,
                                  List<ContactAlias> aliases, String filter) {
-        // Remove rendered rows but retain the heading and empty-state view.
-        for (int i = parent.getChildCount() - 1; i >= 0; i--) {
-            View child = parent.getChildAt(i);
-            if (child != empty && child.getTag() != null && "alias-row".equals(child.getTag())) {
-                parent.removeViewAt(i);
-            }
-        }
+        list.removeAllViews();
         String query = filter == null ? "" : filter.trim().toLowerCase(Locale.ROOT);
-        int shown = 0;
+        int visible = 0;
         for (ContactAlias alias : aliases) {
             ContactItem linked = null;
-            for (ContactItem contact : contacts) if (contact.id == alias.contactId) { linked = contact; break; }
-            String contactName = linked == null ? "Contact no longer available" : linked.name;
+            for (ContactItem item : contacts) if (item.id == alias.contactId) { linked = item; break; }
+            String contactName = linked == null ? "Unknown contact" : safe(linked.name);
             if (!query.isEmpty() && !alias.alias.toLowerCase(Locale.ROOT).contains(query)
                     && !contactName.toLowerCase(Locale.ROOT).contains(query)) continue;
+            if (visible++ > 0) addThinDivider(list);
             LinearLayout row = new LinearLayout(this);
-            row.setTag("alias-row");
-            row.setOrientation(LinearLayout.VERTICAL);
-            row.setPadding(0, dp(12), 0, dp(12));
-            TextView aliasName = text(alias.alias, 17, true);
-            row.addView(aliasName);
-            TextView details = text("Linked to " + contactName + "  ·  "
-                    + dictionaryLanguageName(alias.languageTag), 13, false);
-            details.setTextColor(linked == null ? Color.rgb(160, 75, 55) : COLOR_SECONDARY);
-            LinearLayout.LayoutParams detailsParams = new LinearLayout.LayoutParams(-1, -2);
-            detailsParams.topMargin = dp(3);
-            row.addView(details, detailsParams);
-            LinearLayout actions = new LinearLayout(this);
-            actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-            Button edit = new Button(this);
-            edit.setText("Edit");
-            styleActionButton(edit, COLOR_SAGE, COLOR_PRIMARY, COLOR_SAGE, 40);
-            Button remove = new Button(this);
-            remove.setText("Delete");
-            styleActionButton(remove, COLOR_SURFACE, COLOR_PRIMARY, COLOR_BORDER, 40);
-            LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(-2, dp(42));
-            actionParams.leftMargin = dp(8);
-            actions.addView(edit, actionParams);
-            actions.addView(remove, actionParams);
-            LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(-1, -2);
-            actionsParams.topMargin = dp(6);
-            row.addView(actions, actionsParams);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(8), dp(12), dp(8), dp(12));
+            TextView avatar = text(initials(contactName), 13, true);
+            avatar.setGravity(Gravity.CENTER);
+            avatar.setTextColor(COLOR_PRIMARY);
+            avatar.setBackground(roundedBackground(0xFFE5EBDD, 0xFFE5EBDD, 100));
+            row.addView(avatar, new LinearLayout.LayoutParams(dp(42), dp(42)));
+            LinearLayout names = new LinearLayout(this);
+            names.setOrientation(LinearLayout.VERTICAL);
+            names.setPadding(dp(10), 0, dp(4), 0);
+            TextView aliasName = text("“" + alias.alias + "”  " + alias.languageTag.substring(0, Math.min(2, alias.languageTag.length())).toUpperCase(Locale.ROOT), 14, true);
+            TextView linkedName = text("↗  " + contactName, 12, false);
+            linkedName.setTextColor(COLOR_SECONDARY);
+            names.addView(aliasName);
+            names.addView(linkedName);
+            row.addView(names, new LinearLayout.LayoutParams(0, -2, 1));
+            TextView edit = iconAction("✎", COLOR_PRIMARY, "Edit alias");
+            row.addView(edit, new LinearLayout.LayoutParams(dp(38), dp(44)));
             edit.setOnClickListener(v -> showAliasEditor(alias));
-            remove.setOnClickListener(v -> confirmDeleteAlias(alias));
-            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
-            rowParams.topMargin = dp(5);
-            rowParams.bottomMargin = dp(5);
-            parent.addView(row, rowParams);
-            View divider = new View(this);
-            divider.setBackgroundColor(COLOR_BORDER);
-            LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(-1, dp(1));
-            dividerParams.setMargins(dp(8), 0, dp(8), 0);
-            parent.addView(divider, dividerParams);
-            shown++;
+            TextView delete = iconAction("♜", 0xFF9D5349, "Delete alias");
+            delete.setText("✕");
+            row.addView(delete, new LinearLayout.LayoutParams(dp(38), dp(44)));
+            delete.setOnClickListener(v -> confirmDeleteAlias(alias));
+            list.addView(row);
         }
-        empty.setVisibility(shown == 0 ? View.VISIBLE : View.GONE);
-        empty.setText(aliases.isEmpty() ? "No aliases saved yet. Add a nickname to get started."
-                : "No aliases match your search.");
+        empty.setVisibility(visible == 0 ? View.VISIBLE : View.GONE);
+        if (visible == 0) {
+            empty.setText(query.isEmpty() ? "No aliases saved yet." : "No matching aliases.");
+            list.addView(empty);
+        }
     }
 
-    /** Applies the shared VoiceDeck form-field treatment to editable text controls. */
+    private String initials(String name) {
+        String[] parts = safe(name).trim().split("\\s+");
+        if (parts.length == 0 || parts[0].isEmpty()) return "?";
+        String result = parts[0].substring(0, 1);
+        if (parts.length > 1 && !parts[1].isEmpty()) result += parts[1].substring(0, 1);
+        return result.toUpperCase(Locale.ROOT);
+    }
+
+    private TextView iconAction(String symbol, int color, String description) {
+        TextView action = text(symbol, 20, false);
+        action.setTextColor(color);
+        action.setGravity(Gravity.CENTER);
+        action.setContentDescription(description);
+        action.setClickable(true);
+        action.setFocusable(true);
+        return action;
+    }
+
+    private void addThinDivider(LinearLayout parent) {
+        View line = new View(this);
+        line.setBackgroundColor(COLOR_BORDER);
+        parent.addView(line, new LinearLayout.LayoutParams(-1, dp(1)));
+    }
+
     private void styleFormField(EditText field) {
         field.setSingleLine(true);
         field.setTextSize(16);
@@ -1748,108 +1765,59 @@ public class MainActivity extends Activity {
             Toast.makeText(this, "No contacts with phone numbers are available.", Toast.LENGTH_LONG).show();
             return;
         }
-        final ContactItem[] selectedContact = new ContactItem[1];
-        if (existing != null) {
-            for (ContactItem item : contacts) if (item.id == existing.contactId) { selectedContact[0] = item; break; }
-        }
-        LinearLayout panel = dialogPanel();
-        panel.addView(dialogTitle(existing == null ? "Add alias" : "Edit alias"));
-        TextView hint = text("Choose the contact and the name you want to use when speaking to VoiceDeck.", 14, false);
-        hint.setTextColor(COLOR_SECONDARY);
-        panel.addView(hint);
-        Button contactButton = new Button(this);
-        contactButton.setText(selectedContact[0] == null ? "Select contact" : selectedContact[0].name);
-        styleActionButton(contactButton, COLOR_SURFACE, COLOR_PRIMARY, COLOR_BORDER, 48);
-        contactButton.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
-        contactButton.setCompoundDrawablePadding(dp(10));
-        LinearLayout.LayoutParams contactParams = new LinearLayout.LayoutParams(-1, dp(52));
-        contactParams.topMargin = dp(10);
-        panel.addView(contactButton, contactParams);
-        contactButton.setOnClickListener(v -> showAliasManagementContactPicker(selectedContact, contactButton));
-
-        TextView nicknameLabel = text("Nickname", 13, true);
-        nicknameLabel.setTextColor(COLOR_SECONDARY);
-        LinearLayout.LayoutParams nicknameLabelParams = new LinearLayout.LayoutParams(-1, -2);
-        nicknameLabelParams.topMargin = dp(16);
-        panel.addView(nicknameLabel, nicknameLabelParams);
-        EditText aliasInput = new EditText(this);
-        styleFormField(aliasInput);
-        aliasInput.setHint("For example, Aai");
-        aliasInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        LinearLayout.LayoutParams aliasParams = new LinearLayout.LayoutParams(-1, dp(56));
-        aliasParams.topMargin = dp(6);
-        panel.addView(aliasInput, aliasParams);
-        if (existing != null) aliasInput.setText(existing.alias);
-
-        TextView languageLabel = text("Spoken language", 13, true);
-        languageLabel.setTextColor(COLOR_SECONDARY);
-        LinearLayout.LayoutParams languageLabelParams = new LinearLayout.LayoutParams(-1, -2);
-        languageLabelParams.topMargin = dp(16);
-        panel.addView(languageLabel, languageLabelParams);
-        RadioGroup languages = new RadioGroup(this);
-        languages.setOrientation(RadioGroup.VERTICAL);
+        final ContactItem[] selected = new ContactItem[1];
+        if (existing != null) for (ContactItem item : contacts)
+            if (item.id == existing.contactId) { selected[0] = item; break; }
+        View screen = showFigmaScreen(R.layout.screen_alias_form);
+        EditText nickname = screen.findViewById(R.id.alias_nickname);
+        TextView contact = screen.findViewById(R.id.alias_contact_selector);
+        TextView languageSelector = screen.findViewById(R.id.alias_language_selector);
+        Button save = screen.findViewById(R.id.action_save_alias);
+        Button cancel = screen.findViewById(R.id.action_cancel_alias);
+        nickname.setText(existing == null ? "" : existing.alias);
+        contact.setText(selected[0] == null ? "Select contact  ›" : selected[0].name + "  ›");
+        final String[] selectedLanguage = {existing == null ? language : existing.languageTag};
         String[] languageTags = {"en-IN", "hi-IN", "mr-IN"};
         String[] languageLabels = {"English", "हिन्दी", "मराठी"};
-        for (int i = 0; i < languageTags.length; i++) {
-            RadioButton option = new RadioButton(this);
-            option.setId(100 + i);
-            option.setText(languageLabels[i]);
-            option.setTextColor(COLOR_TEXT);
-            option.setButtonTintList(android.content.res.ColorStateList.valueOf(COLOR_PRIMARY));
-            option.setChecked((existing == null ? language : existing.languageTag).equals(languageTags[i]));
-            languages.addView(option);
-        }
-        panel.addView(languages);
-
-        AlertDialog dialog = new AlertDialog.Builder(this).setView(panel)
-                .setPositiveButton(existing == null ? "Add" : "Save", null)
-                .setNegativeButton("Cancel", null).create();
-        dialog.setOnShowListener(ignored -> {
-            if (dialog.getWindow() != null) dialog.getWindow().setBackgroundDrawable(
-                    roundedBackground(COLOR_SURFACE, COLOR_BORDER, 24));
-            Button save = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            save.setTextColor(COLOR_PRIMARY);
-            save.setOnClickListener(v -> {
-                String aliasText = aliasInput.getText().toString().trim();
-                String normalized = SpeechCommandFilter.normalizeTerm(aliasText);
-                if (selectedContact[0] == null) {
-                    Toast.makeText(this, "Please select a contact.", Toast.LENGTH_SHORT).show();
-                    return;
+        for (int i = 0; i < languageTags.length; i++) if (languageTags[i].equals(selectedLanguage[0]))
+            languageSelector.setText(languageLabels[i] + "  ›");
+        contact.setOnClickListener(v -> showAliasManagementContactPicker(selected, contact));
+        languageSelector.setOnClickListener(v -> new AlertDialog.Builder(this)
+                .setTitle("Spoken language").setSingleChoiceItems(languageLabels,
+                        java.util.Arrays.asList(languageTags).indexOf(selectedLanguage[0]),
+                        (dialog, which) -> { selectedLanguage[0] = languageTags[which];
+                            languageSelector.setText(languageLabels[which] + "  ›"); dialog.dismiss(); })
+                .setNegativeButton("Cancel", null).show());
+        cancel.setOnClickListener(v -> showAliasManager());
+        save.setText(existing == null ? "Add alias" : "Save alias");
+        save.setOnClickListener(v -> {
+            String aliasText = nickname.getText().toString().trim();
+            String normalized = SpeechCommandFilter.normalizeTerm(aliasText);
+            if (selected[0] == null) { Toast.makeText(this, "Select a contact.", Toast.LENGTH_SHORT).show(); return; }
+            if (normalized.isEmpty() || aliasText.length() > 80 || normalized.split("\\s+").length > 8) {
+                nickname.setError("Use up to 80 characters and 8 words."); return;
+            }
+            ContactAlias entry = new ContactAlias(selected[0].id, aliasText, normalized,
+                    selectedLanguage[0], existing == null ? System.currentTimeMillis() : existing.createdAt);
+            if (existing != null) entry.id = existing.id;
+            if (existing == null) contactAliasRepository.insert(entry, new ContactAliasRepository.ResultCallback<Long>() {
+                @Override public void onSuccess(Long id) {
+                    if (id == null || id <= 0) { Toast.makeText(MainActivity.this, "Alias already linked to this contact.", Toast.LENGTH_LONG).show(); return; }
+                    onAliasManagementSaved("Alias added.");
                 }
-                if (normalized.isEmpty() || aliasText.length() > 80 || normalized.split("\\s+").length > 8) {
-                    aliasInput.setError("Enter a nickname of up to 80 characters and 8 words.");
-                    return;
+                @Override public void onError(Exception error) { Toast.makeText(MainActivity.this, "Couldn't add alias.", Toast.LENGTH_LONG).show(); }
+            });
+            else contactAliasRepository.update(entry, new ContactAliasRepository.ResultCallback<Integer>() {
+                @Override public void onSuccess(Integer count) {
+                    if (count == null || count <= 0) { Toast.makeText(MainActivity.this, "Alias already linked to this contact.", Toast.LENGTH_LONG).show(); return; }
+                    onAliasManagementSaved("Alias updated.");
                 }
-                int selectedLanguageIndex = Math.max(0, languages.indexOfChild(
-                        languages.findViewById(languages.getCheckedRadioButtonId())));
-                String selectedLanguage = languageTags[Math.min(selectedLanguageIndex, languageTags.length - 1)];
-                ContactAlias entry = existing == null
-                        ? new ContactAlias(selectedContact[0].id, aliasText, normalized, selectedLanguage, System.currentTimeMillis())
-                        : new ContactAlias(selectedContact[0].id, aliasText, normalized, selectedLanguage, existing.createdAt);
-                if (existing != null) entry.id = existing.id;
-                if (existing == null) {
-                    contactAliasRepository.insert(entry, new ContactAliasRepository.ResultCallback<Long>() {
-                        @Override public void onSuccess(Long id) {
-                            if (id == null || id <= 0) { Toast.makeText(MainActivity.this, "That nickname is already linked to this contact in this language.", Toast.LENGTH_LONG).show(); return; }
-                            dialog.dismiss(); onAliasManagementSaved("Alias added.");
-                        }
-                        @Override public void onError(Exception error) { Toast.makeText(MainActivity.this, "Couldn't add this alias. Please try again.", Toast.LENGTH_LONG).show(); }
-                    });
-                } else {
-                    contactAliasRepository.update(entry, new ContactAliasRepository.ResultCallback<Integer>() {
-                        @Override public void onSuccess(Integer updated) {
-                            if (updated == null || updated <= 0) { Toast.makeText(MainActivity.this, "That nickname is already linked to this contact in this language.", Toast.LENGTH_LONG).show(); return; }
-                            dialog.dismiss(); onAliasManagementSaved("Alias updated.");
-                        }
-                        @Override public void onError(Exception error) { Toast.makeText(MainActivity.this, "Couldn't update this alias. Please try again.", Toast.LENGTH_LONG).show(); }
-                    });
-                }
+                @Override public void onError(Exception error) { Toast.makeText(MainActivity.this, "Couldn't update alias.", Toast.LENGTH_LONG).show(); }
             });
         });
-        dialog.show();
     }
 
-    private void showAliasManagementContactPicker(ContactItem[] selected, Button target) {
+    private void showAliasManagementContactPicker(ContactItem[] selected, TextView target) {
         List<ContactItem> visible = new ArrayList<>(contacts);
         ArrayAdapter<ContactItem> adapter = new ArrayAdapter<ContactItem>(this,
                 android.R.layout.simple_list_item_1, visible) {
@@ -1863,6 +1831,7 @@ public class MainActivity extends Activity {
         LinearLayout panel = dialogPanel();
         panel.addView(dialogTitle("Select contact"));
         EditText search = new EditText(this);
+        search.setTypeface(getManrope());
         search.setSingleLine(true); search.setHint("Search contacts"); search.setTextSize(16);
         panel.addView(search, new LinearLayout.LayoutParams(-1, dp(52)));
         ListView list = new ListView(this);
@@ -1910,76 +1879,23 @@ public class MainActivity extends Activity {
     private void showDictionaryManager(String selectedLanguage) {
         setSecondaryHeader(true);
         showingDictionaryManager = true;
+        showingAliasManager = false;
         dictionaryManagerLanguage = selectedLanguage;
-        content.removeAllViews();
-        content.setGravity(Gravity.TOP);
-        content.setPadding(dp(2), dp(14), dp(2), dp(22));
+        View screen = showFigmaScreen(R.layout.screen_vocabulary);
         statusText.setText("");
-
-        TextView heading = centeredText("SPEECH DICTIONARY", 13, true, COLOR_SECONDARY);
-        heading.setLetterSpacing(0.12f);
-        content.addView(heading, new LinearLayout.LayoutParams(-1, dp(34)));
-        TextView title = centeredText("Manage vocabulary", 26, true, COLOR_TEXT);
-        content.addView(title, new LinearLayout.LayoutParams(-1, -2));
-        TextView description = text(
-                "Enable or disable words, add phrases you use, or restore the original words. " +
-                        "Essential call commands stay enabled. Changes stay on this device.", 14, false);
-        description.setTextColor(COLOR_SECONDARY);
-        description.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams descriptionParams = new LinearLayout.LayoutParams(-1, -2);
-        descriptionParams.setMargins(dp(8), dp(8), dp(8), dp(14));
-        content.addView(description, descriptionParams);
-
-        LinearLayout languageCard = new LinearLayout(this);
-        languageCard.setGravity(Gravity.CENTER_VERTICAL);
-        languageCard.setPadding(dp(14), dp(8), dp(10), dp(8));
-        languageCard.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 18));
-        TextView languageLabel = text("Dictionary language", 16, true);
-        languageCard.addView(languageLabel, new LinearLayout.LayoutParams(0, -2, 1));
-        Button languageButton = new Button(this);
-        languageButton.setText(dictionaryLanguageName(dictionaryManagerLanguage) + " ▾");
-        styleActionButton(languageButton, COLOR_SAGE, COLOR_PRIMARY, COLOR_SAGE, 44);
-        languageCard.addView(languageButton);
-        languageButton.setOnClickListener(v -> showDictionaryLanguageChooser());
-        content.addView(languageCard, new LinearLayout.LayoutParams(-1, -2));
-
-        LinearLayout actionRow = new LinearLayout(this);
-        actionRow.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(-1, -2);
-        actionParams.topMargin = dp(12);
-        content.addView(actionRow, actionParams);
-        Button add = new Button(this);
-        add.setText("Add word or phrase");
-        styleActionButton(add, COLOR_PRIMARY, Color.WHITE, COLOR_PRIMARY, 50);
-        actionRow.addView(add, new LinearLayout.LayoutParams(-1, dp(52)));
-        add.setOnClickListener(v -> showAddDictionaryEntryDialog());
-        Button restore = new Button(this);
-        restore.setText("Restore defaults");
-        styleActionButton(restore, COLOR_SURFACE, COLOR_PRIMARY, COLOR_BORDER, 50);
-        LinearLayout.LayoutParams restoreParams = new LinearLayout.LayoutParams(-1, dp(52));
-        restoreParams.topMargin = dp(8);
-        actionRow.addView(restore, restoreParams);
-        restore.setOnClickListener(v -> confirmRestoreDictionaryDefaults());
-
-        LinearLayout listCard = new LinearLayout(this);
-        listCard.setOrientation(LinearLayout.VERTICAL);
-        listCard.setPadding(dp(14), dp(14), dp(14), dp(14));
-        listCard.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 20));
-        LinearLayout.LayoutParams listCardParams = new LinearLayout.LayoutParams(-1, -2);
-        listCardParams.topMargin = dp(14);
-        content.addView(listCard, listCardParams);
-        listCard.addView(text("Words and phrases", 18, true));
-        TextView loading = text("Loading local dictionary…", 14, false);
-        loading.setTextColor(COLOR_SECONDARY);
-        LinearLayout.LayoutParams loadingParams = new LinearLayout.LayoutParams(-1, -2);
-        loadingParams.topMargin = dp(10);
-        listCard.addView(loading, loadingParams);
-
-        // Return to Settings using the standard Android Back action.
-
+        TextView languageRow = screen.findViewById(R.id.vocabulary_language);
+        EditText search = screen.findViewById(R.id.vocabulary_search);
+        Button add = screen.findViewById(R.id.action_add_vocabulary);
+        Button restore = screen.findViewById(R.id.action_restore_vocabulary);
+        LinearLayout list = screen.findViewById(R.id.vocabulary_entries);
+        if (languageRow != null) {
+            languageRow.setText("Current language\n" + dictionaryLanguageName(dictionaryManagerLanguage) + "   ›");
+            languageRow.setOnClickListener(v -> showDictionaryLanguageChooser());
+        }
+        if (add != null) add.setOnClickListener(v -> showAddDictionaryEntryDialog());
+        if (restore != null) restore.setOnClickListener(v -> confirmRestoreDictionaryDefaults());
         if (speechDictionaryRepository == null) {
             initializeSpeechDictionary();
-            loading.setText("Preparing local dictionary. Please reopen this screen in a moment.");
             return;
         }
         speechDictionaryRepository.getEntriesForLanguage(
@@ -1987,81 +1903,87 @@ public class MainActivity extends Activity {
                 new SpeechDictionaryRepository.ResultCallback<List<SpeechDictionaryEntry>>() {
                     @Override public void onSuccess(List<SpeechDictionaryEntry> entries) {
                         if (isFinishing() || isDestroyed() || !showingDictionaryManager
-                                || !dictionaryManagerLanguage.equals(selectedLanguage)) return;
-                        listCard.removeView(loading);
-                        if (entries.isEmpty()) {
-                            TextView empty = text("No entries yet. Add a word or restore defaults.", 14, false);
-                            empty.setTextColor(COLOR_SECONDARY);
-                            listCard.addView(empty);
-                            return;
-                        }
-                        addDictionaryEntryRows(listCard, entries);
+                                || !dictionaryManagerLanguage.equals(selectedLanguage) || list == null) return;
+                        Runnable render = () -> {
+                            list.removeAllViews();
+                            String q = search == null || search.getText() == null ? ""
+                                    : search.getText().toString().trim().toLowerCase(Locale.ROOT);
+                            List<SpeechDictionaryEntry> filtered = new ArrayList<>();
+                            for (SpeechDictionaryEntry entry : entries) {
+                                if (q.isEmpty() || entry.term.toLowerCase(Locale.ROOT).contains(q)
+                                        || entry.category.toLowerCase(Locale.ROOT).contains(q)) filtered.add(entry);
+                            }
+                            if (filtered.isEmpty()) {
+                                TextView empty = text("No matching vocabulary entries.", 14, false);
+                                empty.setTextColor(COLOR_SECONDARY);
+                                list.addView(empty);
+                            } else {
+                                addDictionaryEntryRows(list, filtered);
+                            }
+                        };
+                        if (search != null) search.addTextChangedListener(new TextWatcher() {
+                            @Override public void beforeTextChanged(CharSequence s, int start, int c, int a) { }
+                            @Override public void onTextChanged(CharSequence s, int start, int before, int c) { render.run(); }
+                            @Override public void afterTextChanged(Editable s) { }
+                        });
+                        render.run();
                     }
-
                     @Override public void onError(Exception error) {
-                        if (isFinishing() || isDestroyed() || !showingDictionaryManager) return;
-                        loading.setText("Couldn't load the local dictionary. Please try again.");
+                        if (!isFinishing() && !isDestroyed() && showingDictionaryManager && list != null) {
+                            list.removeAllViews();
+                            TextView message = text("Couldn't load the local dictionary. Please try again.", 14, false);
+                            list.addView(message);
+                        }
                     }
-                }
-        );
+                });
     }
 
     private void addDictionaryEntryRows(LinearLayout parent, List<SpeechDictionaryEntry> entries) {
-        String previousCategory = null;
+        int index = 0;
         for (SpeechDictionaryEntry entry : entries) {
-            if (!entry.category.equals(previousCategory)) {
-                TextView category = text(dictionaryCategoryName(entry.category), 13, true);
-                category.setTextColor(COLOR_SECONDARY);
-                category.setPadding(0, dp(14), 0, dp(4));
-                parent.addView(category);
-                previousCategory = entry.category;
-            }
-
+            if (index++ > 0) addThinDivider(parent);
             LinearLayout row = new LinearLayout(this);
             row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(dp(10), dp(7), dp(8), dp(7));
-            row.setBackground(roundedBackground(COLOR_BACKGROUND, COLOR_BORDER, 14));
-            CheckBox enabled = new CheckBox(this);
-            enabled.setText(entry.term + (entry.isDefault ? "  ·  Default" : "  ·  Custom"));
-            enabled.setTextSize(14);
-            enabled.setTextColor(COLOR_TEXT);
-            enabled.setButtonTintList(android.content.res.ColorStateList.valueOf(COLOR_PRIMARY));
-            enabled.setChecked(entry.enabled);
-            enabled.setEnabled(!entry.isProtected);
-            row.addView(enabled, new LinearLayout.LayoutParams(0, -2, 1));
+            row.setPadding(dp(12), dp(12), dp(10), dp(12));
+            LinearLayout labels = new LinearLayout(this);
+            labels.setOrientation(LinearLayout.VERTICAL);
+            TextView term = text(entry.term + (entry.isDefault ? "" : "  ·  CUSTOM"), 15, true);
+            TextView category = text(dictionaryCategoryName(entry.category), 12, false);
+            category.setTextColor(COLOR_SECONDARY);
+            labels.addView(term);
+            labels.addView(category);
+            row.addView(labels, new LinearLayout.LayoutParams(0, -2, 1));
             if (entry.isProtected) {
-                TextView protectedLabel = text("Essential", 11, true);
-                protectedLabel.setTextColor(COLOR_PRIMARY);
-                row.addView(protectedLabel);
+                TextView essential = text("Essential", 11, true);
+                essential.setTextColor(COLOR_PRIMARY);
+                essential.setPadding(dp(5), 0, dp(6), 0);
+                row.addView(essential);
             } else if (!entry.isDefault) {
-                Button remove = new Button(this);
-                remove.setText("Delete");
-                styleActionButton(remove, COLOR_SURFACE, COLOR_SECONDARY, COLOR_BORDER, 40);
-                remove.setTextSize(12);
-                remove.setPadding(dp(12), dp(6), dp(12), dp(6));
-                row.addView(remove);
+                TextView remove = iconAction("✕", 0xFF9D5349, "Delete phrase");
+                row.addView(remove, new LinearLayout.LayoutParams(dp(36), dp(44)));
                 remove.setOnClickListener(v -> confirmDeleteCustomEntry(entry));
             }
+            Switch enabled = new Switch(this);
+            enabled.setTypeface(getManrope());
+            enabled.setShowText(false);
+            enabled.setChecked(entry.enabled);
+            enabled.setEnabled(!entry.isProtected);
+            enabled.setContentDescription("Enable " + entry.term);
+            enabled.setThumbTintList(android.content.res.ColorStateList.valueOf(0xFFFFFFFF));
+            enabled.setTrackTintList(android.content.res.ColorStateList.valueOf(entry.enabled ? COLOR_PRIMARY : 0xFFB5B4AA));
+            row.addView(enabled, new LinearLayout.LayoutParams(-2, -2));
             parent.addView(row);
-            View divider = new View(this);
-            divider.setTag("alias-row");
-            divider.setBackgroundColor(COLOR_BORDER);
-            parent.addView(divider, new LinearLayout.LayoutParams(-1, dp(1)));
             enabled.setOnCheckedChangeListener((button, checked) -> {
                 if (entry.enabled == checked) return;
                 speechDictionaryRepository.setEnabled(entry.id, checked,
                         new SpeechDictionaryRepository.ResultCallback<Integer>() {
                             @Override public void onSuccess(Integer changed) {
                                 if (!showingDictionaryManager || isFinishing() || isDestroyed()) return;
-                                if (changed == null || changed == 0) {
-                                    Toast.makeText(MainActivity.this,
-                                            "This essential command cannot be disabled.",
-                                            Toast.LENGTH_SHORT).show();
-                                }
+                                if (changed == null || changed == 0) Toast.makeText(MainActivity.this,
+                                        "This essential command cannot be disabled.", Toast.LENGTH_SHORT).show();
                                 if (entry.languageTag.equals(language)) loadSpeechDictionary();
                                 showDictionaryManager(dictionaryManagerLanguage);
                             }
-
                             @Override public void onError(Exception error) {
                                 if (!showingDictionaryManager || isFinishing() || isDestroyed()) return;
                                 Toast.makeText(MainActivity.this,
@@ -2091,86 +2013,33 @@ public class MainActivity extends Activity {
     }
 
     private void showAddDictionaryEntryDialog() {
-        LinearLayout panel = dialogPanel();
-        panel.addView(dialogTitle("Add vocabulary"));
-        TextView hint = text("Enter a word or short phrase in " +
-                dictionaryLanguageName(dictionaryManagerLanguage) + ".", 14, false);
-        hint.setTextColor(COLOR_SECONDARY);
-        panel.addView(hint);
-        EditText termInput = new EditText(this);
-        styleFormField(termInput);
-        termInput.setHint("For example: please call");
-        termInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(-1, dp(56));
-        inputParams.topMargin = dp(12);
-        panel.addView(termInput, inputParams);
-        TextView categoryLabel = text("Category", 13, true);
-        categoryLabel.setTextColor(COLOR_SECONDARY);
-        LinearLayout.LayoutParams categoryLabelParams = new LinearLayout.LayoutParams(-1, -2);
-        categoryLabelParams.topMargin = dp(16);
-        panel.addView(categoryLabel, categoryLabelParams);
-        RadioGroup categories = new RadioGroup(this);
-        categories.setOrientation(RadioGroup.VERTICAL);
-        String[] categoryLabels = {"Command", "Greeting", "Filler"};
-        String[] categoryValues = {SpeechDictionaryEntry.CATEGORY_COMMAND,
-                SpeechDictionaryEntry.CATEGORY_GREETING, SpeechDictionaryEntry.CATEGORY_FILLER};
-        for (int i = 0; i < categoryLabels.length; i++) {
-            RadioButton option = new RadioButton(this);
-            option.setText(categoryLabels[i]);
-            option.setId(i + 1);
-            option.setTextColor(COLOR_TEXT);
-            option.setButtonTintList(android.content.res.ColorStateList.valueOf(COLOR_PRIMARY));
-            option.setChecked(i == 0);
-            categories.addView(option);
-        }
-        panel.addView(categories);
-        AlertDialog dialog = new AlertDialog.Builder(this).setView(panel)
-                .setPositiveButton("Add", null).setNegativeButton("Cancel", null).create();
-        dialog.setOnShowListener(ignored -> {
-            if (dialog.getWindow() != null) {
-                dialog.getWindow().setBackgroundDrawable(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 24));
+        View screen = showFigmaScreen(R.layout.screen_vocabulary_form);
+        EditText phrase = screen.findViewById(R.id.vocabulary_phrase);
+        android.widget.Spinner category = screen.findViewById(R.id.vocabulary_category);
+        Button cancel = screen.findViewById(R.id.action_cancel_vocabulary);
+        Button save = screen.findViewById(R.id.action_save_vocabulary);
+        cancel.setOnClickListener(v -> showDictionaryManager(dictionaryManagerLanguage));
+        save.setOnClickListener(v -> {
+            String term = phrase.getText().toString().trim();
+            String normalized = SpeechCommandFilter.normalizeTerm(term);
+            if (normalized.isEmpty() || term.length() > 80 || normalized.split("\\s+").length > 8) {
+                phrase.setError("Use a phrase of up to 80 characters and 8 words."); return;
             }
-            Button addButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            addButton.setTextColor(COLOR_PRIMARY);
-            addButton.setOnClickListener(v -> {
-                String term = termInput.getText().toString().trim();
-                String normalized = SpeechCommandFilter.normalizeTerm(term);
-                if (normalized.isEmpty()) {
-                    termInput.setError("Enter a word or phrase.");
-                    return;
+            String[] values = {SpeechDictionaryEntry.CATEGORY_COMMAND,
+                    SpeechDictionaryEntry.CATEGORY_GREETING, SpeechDictionaryEntry.CATEGORY_FILLER};
+            int index = Math.min(Math.max(category.getSelectedItemPosition(), 0), values.length - 1);
+            SpeechDictionaryEntry entry = new SpeechDictionaryEntry(term, normalized,
+                    dictionaryManagerLanguage, values[index], true, false, false);
+            speechDictionaryRepository.insert(entry, new SpeechDictionaryRepository.ResultCallback<Long>() {
+                @Override public void onSuccess(Long id) {
+                    if (id == null || id < 0) { Toast.makeText(MainActivity.this, "Phrase already exists.", Toast.LENGTH_LONG).show(); return; }
+                    Toast.makeText(MainActivity.this, "Vocabulary added.", Toast.LENGTH_SHORT).show();
+                    if (dictionaryManagerLanguage.equals(language)) loadSpeechDictionary();
+                    showDictionaryManager(dictionaryManagerLanguage);
                 }
-                if (term.length() > 80 || normalized.split("\\s+").length > 8) {
-                    termInput.setError("Use 80 characters or fewer and no more than 8 words.");
-                    return;
-                }
-                int selectedCategory = categories.getCheckedRadioButtonId() - 1;
-                if (selectedCategory < 0 || selectedCategory >= categoryValues.length) selectedCategory = 0;
-                String category = categoryValues[selectedCategory];
-                SpeechDictionaryEntry entry = new SpeechDictionaryEntry(term, normalized,
-                        dictionaryManagerLanguage, category, true, false, false);
-                speechDictionaryRepository.insert(entry,
-                        new SpeechDictionaryRepository.ResultCallback<Long>() {
-                            @Override public void onSuccess(Long id) {
-                                if (id == null || id < 0) {
-                                    Toast.makeText(MainActivity.this,
-                                            "That word or phrase already exists in this category.",
-                                            Toast.LENGTH_LONG).show();
-                                    return;
-                                }
-                                dialog.dismiss();
-                                Toast.makeText(MainActivity.this, "Vocabulary added.", Toast.LENGTH_SHORT).show();
-                                if (dictionaryManagerLanguage.equals(language)) loadSpeechDictionary();
-                                showDictionaryManager(dictionaryManagerLanguage);
-                            }
-
-                            @Override public void onError(Exception error) {
-                                Toast.makeText(MainActivity.this,
-                                        "Couldn't save this vocabulary entry.", Toast.LENGTH_LONG).show();
-                            }
-                        });
+                @Override public void onError(Exception error) { Toast.makeText(MainActivity.this, "Couldn't save phrase.", Toast.LENGTH_LONG).show(); }
             });
         });
-        dialog.show();
     }
 
     private void confirmDeleteCustomEntry(SpeechDictionaryEntry entry) {
@@ -2299,10 +2168,34 @@ public class MainActivity extends Activity {
             flipContactCard(false);
             return;
         }
+        if (currentFigmaLayout == R.layout.screen_alias_form) { showAliasManager(); return; }
+        if (currentFigmaLayout == R.layout.screen_vocabulary_form) { showDictionaryManager(dictionaryManagerLanguage); return; }
+        if (currentFigmaLayout == R.layout.screen_settings
+                || currentFigmaLayout == R.layout.screen_permissions
+                || currentFigmaLayout == R.layout.screen_legal) {
+            showSettings();
+            return;
+        }
+        if (currentFigmaLayout == R.layout.screen_contact) {
+            returnToVoiceSearch();
+            return;
+        }
+        if (currentFigmaLayout == R.layout.screen_search
+                || currentFigmaLayout == R.layout.screen_matches) {
+            showListeningPrompt(false);
+            return;
+        }
+        if (headerBack != null && headerBack.getVisibility() == View.VISIBLE) {
+            showListeningPrompt(false);
+            return;
+        }
         super.onBackPressed();
     }
 
     @Override protected void onDestroy() {
+        if (splashFinish != null) splashHandler.removeCallbacks(splashFinish);
+        if (splashAnimations != null) splashAnimations.cancel();
+        if (splashOverlay != null) splashOverlay.animate().cancel();
         if (speechRecognizer != null) {
             speechRecognizer.destroy();
             speechRecognizer = null;

@@ -1,56 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/vd_canvas">
-
-<ScrollView
-    android:layout_width="0dp"
-    android:layout_height="0dp"
-    android:clipToPadding="false"
-    app:layout_constraintBottom_toBottomOf="parent"
-    app:layout_constraintEnd_toEndOf="parent"
-    app:layout_constraintStart_toStartOf="parent"
-    app:layout_constraintTop_toTopOf="parent"
-    app:layout_constraintWidth_max="@dimen/content_max_width">
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="@dimen/screen_padding">
-
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Settings" style="@style/Text.VoiceDeck.Title" />
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="Keep VoiceDeck working the way you prefer." style="@style/Text.VoiceDeck.Body" />
-
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_6" android:text="VOICE PREFERENCES" style="@style/Text.VoiceDeck.Eyebrow" />
-        <TextView
-            android:id="@+id/setting_language"
-            android:layout_width="match_parent"
-            android:layout_height="76dp"
-            android:layout_marginTop="@dimen/space_2"
-            android:background="@drawable/bg_card"
-            android:gravity="center_vertical"
-            android:padding="@dimen/space_4"
-            android:text="Voice search language&#10;English (United Kingdom)                                      ›"
-            android:textColor="@color/vd_text"
-            android:textSize="15sp"
-            android:textStyle="bold" />
-
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_6" android:text="PERSONALISATION" style="@style/Text.VoiceDeck.Eyebrow" />
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:background="@drawable/bg_card" android:orientation="vertical" android:padding="@dimen/space_2">
-            <TextView android:id="@+id/setting_vocabulary" android:layout_width="match_parent" android:layout_height="72dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="Manage vocabulary&#10;Commands, greetings and fillers                              ›" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
-            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />
-            <TextView android:id="@+id/setting_aliases" android:layout_width="match_parent" android:layout_height="72dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="Manage aliases&#10;Nicknames linked to contacts                                  ›" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/vd_canvas">
+<ScrollView android:layout_width="0dp" android:layout_height="0dp" android:fillViewport="true" android:clipToPadding="false" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintWidth_max="@dimen/content_max_width">
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="@dimen/screen_padding">
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Settings" style="@style/Text.VoiceDeck.Title"/>
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="Keep VoiceDeck working the way you prefer." style="@style/Text.VoiceDeck.Body"/>
+<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_6" android:text="VOICE PREFERENCES" style="@style/Text.VoiceDeck.Eyebrow"/>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:orientation="vertical" android:background="@drawable/bg_card"><LinearLayout android:id="@+id/setting_language" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="76dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="14dp" android:paddingEnd="16dp" android:paddingTop="12dp" android:paddingBottom="12dp" android:clickable="true" android:focusable="true" android:background="?android:attr/selectableItemBackground">
+        <FrameLayout android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/bg_sage_circle">
+          <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:src="@drawable/ic_setting_language" android:contentDescription="@null" />
+        </FrameLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Voice search language" android:textColor="@color/vd_text" android:textStyle="bold" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" />
+            <TextView android:id="@+id/setting_language_value" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="English (United Kingdom)" android:textColor="@color/vd_muted" android:textSize="12sp" android:maxLines="1" android:ellipsize="end" />
         </LinearLayout>
-
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_6" android:text="ABOUT &amp; PRIVACY" style="@style/Text.VoiceDeck.Eyebrow" />
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:background="@drawable/bg_card" android:orientation="vertical" android:padding="@dimen/space_2">
-            <TextView android:id="@+id/setting_permissions" android:layout_width="match_parent" android:layout_height="72dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="App permissions&#10;Microphone and contacts access                               ›" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
-            <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />
-            <TextView android:id="@+id/setting_legal" android:layout_width="match_parent" android:layout_height="72dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="Legal&#10;Privacy policy and terms                                         ›" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
+        <TextView android:layout_width="22dp" android:layout_height="wrap_content" android:gravity="center" android:text="›" android:textColor="@color/vd_text" android:textSize="24sp" android:importantForAccessibility="no" />
+    </LinearLayout></LinearLayout>
+<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_6" android:text="PERSONALISATION" style="@style/Text.VoiceDeck.Eyebrow"/>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:orientation="vertical" android:background="@drawable/bg_card"><LinearLayout android:id="@+id/setting_vocabulary" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="76dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="14dp" android:paddingEnd="16dp" android:paddingTop="12dp" android:paddingBottom="12dp" android:clickable="true" android:focusable="true" android:background="?android:attr/selectableItemBackground">
+        <FrameLayout android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/bg_sage_circle">
+          <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:src="@drawable/ic_setting_vocabulary" android:contentDescription="@null" />
+        </FrameLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Manage vocabulary" android:textColor="@color/vd_text" android:textStyle="bold" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" />
+            <TextView  android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="Commands, greetings and fillers" android:textColor="@color/vd_muted" android:textSize="12sp" android:maxLines="1" android:ellipsize="end" />
         </LinearLayout>
-    </LinearLayout>
-</ScrollView>
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <TextView android:layout_width="22dp" android:layout_height="wrap_content" android:gravity="center" android:text="›" android:textColor="@color/vd_text" android:textSize="24sp" android:importantForAccessibility="no" />
+    </LinearLayout><View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginStart="12dp" android:layout_marginEnd="12dp" android:background="@color/vd_border"/><LinearLayout android:id="@+id/setting_aliases" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="76dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="14dp" android:paddingEnd="16dp" android:paddingTop="12dp" android:paddingBottom="12dp" android:clickable="true" android:focusable="true" android:background="?android:attr/selectableItemBackground">
+        <FrameLayout android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/bg_sage_circle">
+          <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:src="@drawable/ic_setting_aliases" android:contentDescription="@null" />
+        </FrameLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Manage aliases" android:textColor="@color/vd_text" android:textStyle="bold" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" />
+            <TextView  android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="Nicknames linked to contacts" android:textColor="@color/vd_muted" android:textSize="12sp" android:maxLines="1" android:ellipsize="end" />
+        </LinearLayout>
+        <TextView android:layout_width="22dp" android:layout_height="wrap_content" android:gravity="center" android:text="›" android:textColor="@color/vd_text" android:textSize="24sp" android:importantForAccessibility="no" />
+    </LinearLayout></LinearLayout>
+<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_6" android:text="ABOUT &amp; PRIVACY" style="@style/Text.VoiceDeck.Eyebrow"/>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:orientation="vertical" android:background="@drawable/bg_card"><LinearLayout android:id="@+id/setting_permissions" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="76dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="14dp" android:paddingEnd="16dp" android:paddingTop="12dp" android:paddingBottom="12dp" android:clickable="true" android:focusable="true" android:background="?android:attr/selectableItemBackground">
+        <FrameLayout android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/bg_sage_circle">
+          <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:src="@drawable/ic_setting_permissions" android:contentDescription="@null" />
+        </FrameLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="App permissions" android:textColor="@color/vd_text" android:textStyle="bold" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" />
+            <TextView  android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="Microphone and contacts access" android:textColor="@color/vd_muted" android:textSize="12sp" android:maxLines="1" android:ellipsize="end" />
+        </LinearLayout>
+        <TextView android:layout_width="22dp" android:layout_height="wrap_content" android:gravity="center" android:text="›" android:textColor="@color/vd_text" android:textSize="24sp" android:importantForAccessibility="no" />
+    </LinearLayout><View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginStart="12dp" android:layout_marginEnd="12dp" android:background="@color/vd_border"/><LinearLayout android:id="@+id/setting_legal" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="76dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="14dp" android:paddingEnd="16dp" android:paddingTop="12dp" android:paddingBottom="12dp" android:clickable="true" android:focusable="true" android:background="?android:attr/selectableItemBackground">
+        <FrameLayout android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/bg_sage_circle">
+          <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:src="@drawable/ic_setting_legal" android:contentDescription="@null" />
+        </FrameLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="12dp" android:orientation="vertical">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Legal" android:textColor="@color/vd_text" android:textStyle="bold" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" />
+            <TextView  android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="Privacy policy and terms" android:textColor="@color/vd_muted" android:textSize="12sp" android:maxLines="1" android:ellipsize="end" />
+        </LinearLayout>
+        <TextView android:layout_width="22dp" android:layout_height="wrap_content" android:gravity="center" android:text="›" android:textColor="@color/vd_text" android:textSize="24sp" android:importantForAccessibility="no" />
+    </LinearLayout></LinearLayout></LinearLayout></ScrollView></androidx.constraintlayout.widget.ConstraintLayout>

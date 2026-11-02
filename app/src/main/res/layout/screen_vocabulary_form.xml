@@ -89,7 +89,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
-        <com.google.android.material.button.MaterialButton
+        <Button android:backgroundTint="@null"
             android:id="@+id/action_cancel_vocabulary"
             android:layout_width="0dp"
             android:layout_height="@dimen/button_height"
@@ -98,7 +98,7 @@
             android:text="Cancel"
             style="@style/Widget.VoiceDeck.Button.Outline" />
 
-        <com.google.android.material.button.MaterialButton
+        <Button android:backgroundTint="@null"
             android:id="@+id/action_save_vocabulary"
             android:layout_width="0dp"
             android:layout_height="@dimen/button_height"

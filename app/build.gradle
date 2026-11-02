@@ -49,3 +49,30 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
 }
+
+// Manrope is fetched once and packaged in the APK for fully offline runtime use.
+// Source: https://github.com/google/fonts/tree/main/ofl/manrope (OFL licensed).
+def manropeFontFile = file('src/main/res/font/manrope.ttf')
+tasks.register('installManropeFont') {
+    outputs.file(manropeFontFile)
+    doLast {
+        if (!manropeFontFile.exists() || manropeFontFile.length() < 10000) {
+            manropeFontFile.parentFile.mkdirs()
+            def url = new URL('https://raw.githubusercontent.com/google/fonts/main/ofl/manrope/Manrope%5Bwght%5D.ttf')
+            def connection = url.openConnection()
+            connection.setConnectTimeout(20000)
+            connection.setReadTimeout(30000)
+            def temp = file(manropeFontFile.path + '.download')
+            try {
+                connection.getInputStream().withCloseable { input ->
+                    temp.withOutputStream { output -> output << input }
+                }
+                if (temp.length() < 10000) throw new GradleException('Downloaded Manrope font is invalid')
+                if (!temp.renameTo(manropeFontFile)) throw new GradleException('Unable to install Manrope font file')
+            } finally {
+                temp.delete()
+            }
+        }
+    }
+}
+tasks.named('preBuild').configure { dependsOn('installManropeFont') }

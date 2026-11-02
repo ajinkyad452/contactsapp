@@ -57,8 +57,9 @@
                 android:padding="@dimen/space_5">
 
                 <ImageView
+                    android:id="@+id/contact_photo"
                     android:layout_width="match_parent"
-                    android:layout_height="232dp"
+                    android:layout_height="190dp"
                     android:background="@color/vd_sage"
                     android:contentDescription="@string/contact_photo"
                     android:scaleType="fitCenter"
@@ -67,11 +68,11 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_5"
+                    android:layout_marginTop="@dimen/space_3"
                     android:gravity="center"
-                    android:text="Sarah Mitchell"
+                    android:id="@+id/contact_name" android:text="Sarah Mitchell"
                     android:textColor="@color/vd_text"
-                    android:textSize="27sp"
+                    android:textSize="23sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -79,7 +80,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/space_1"
                     android:gravity="center"
-                    android:text="+44 7700 900 138"
+                    android:id="@+id/contact_phone" android:text="+44 7700 900 138"
                     style="@style/Text.VoiceDeck.Body" />
 
                 <View
@@ -94,20 +95,22 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
 
-                    <com.google.android.material.button.MaterialButton
+                    <Button android:backgroundTint="@null"
                         android:id="@+id/action_call"
                         android:layout_width="0dp"
                         android:layout_height="@dimen/button_height"
                         android:layout_marginEnd="@dimen/space_2"
                         android:layout_weight="1"
+                        android:drawableStart="@drawable/ic_call"
                         android:text="Call"
                         style="@style/Widget.VoiceDeck.Button.Primary" />
 
-                    <com.google.android.material.button.MaterialButton
+                    <Button android:backgroundTint="@null"
                         android:id="@+id/action_whatsapp"
                         android:layout_width="0dp"
                         android:layout_height="@dimen/button_height"
                         android:layout_marginStart="@dimen/space_2"
+                        android:drawableStart="@drawable/ic_whatsapp"
                         android:layout_weight="1"
                         android:text="WhatsApp"
                         style="@style/Widget.VoiceDeck.Button.Outline" />
@@ -134,19 +137,34 @@
                 android:padding="@dimen/space_5"
                 android:visibility="gone">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="CONTACT DETAILS"
-                    style="@style/Text.VoiceDeck.Eyebrow" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="CONTACT DETAILS"
+                        style="@style/Text.VoiceDeck.Eyebrow" />
+                    <ImageButton
+                        android:id="@+id/action_flip_icon"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_sage_circle"
+                        android:src="@drawable/ic_refresh"
+                        android:padding="12dp"
+                        android:contentDescription="Back to card front" />
+                </LinearLayout>
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/space_1"
-                    android:text="Sarah Mitchell"
+                    android:id="@+id/contact_back_name" android:text="Sarah Mitchell"
                     android:textColor="@color/vd_text"
-                    android:textSize="27sp"
+                    android:textSize="23sp"
                     android:textStyle="bold" />
 
                 <View
@@ -156,27 +174,41 @@
                     android:layout_marginBottom="@dimen/space_3"
                     android:background="@color/vd_border" />
 
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="@dimen/space_2" android:text="Email&#10;sarah@northstudio.co" android:textColor="@color/vd_text" android:textSize="15sp" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="@dimen/space_2" android:text="Company&#10;North Studio" android:textColor="@color/vd_text" android:textSize="15sp" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="@dimen/space_2" android:text="Designation&#10;Creative Director" android:textColor="@color/vd_text" android:textSize="15sp" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="@dimen/space_2" android:text="Birthday&#10;18 September" android:textColor="@color/vd_text" android:textSize="15sp" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="@dimen/space_2" android:text="Address&#10;24 Willow Road, London" android:textColor="@color/vd_text" android:textSize="15sp" />
+                <LinearLayout
+                    android:id="@+id/contact_detail_rows"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+                <TextView
+                    android:id="@+id/contact_no_details"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="22dp"
+                    android:text="No additional information saved for this contact."
+                    android:textSize="13sp"
+                    android:textColor="@color/vd_text_muted"
+                    android:visibility="gone" />
 
                 <Space android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" />
 
-                <com.google.android.material.button.MaterialButton
+                <Button android:backgroundTint="@null"
                     android:id="@+id/action_google_contacts"
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/button_height_secondary"
                     android:text="Open in Google Contacts"
+                    android:drawableStart="@drawable/ic_contact_external"
+                    android:drawablePadding="10dp"
                     style="@style/Widget.VoiceDeck.Button.Outline" />
 
-                <com.google.android.material.button.MaterialButton
+                <Button android:backgroundTint="@null"
                     android:id="@+id/action_show_front"
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/button_height_secondary"
                     android:layout_marginTop="@dimen/space_2"
                     android:text="Back to card front"
+                    android:drawableStart="@drawable/ic_refresh"
+                    android:drawablePadding="9dp"
                     style="@style/Widget.VoiceDeck.Button.Text" />
             </LinearLayout>
         </FrameLayout>
@@ -188,7 +220,7 @@
             android:gravity="center"
             android:orientation="horizontal">
 
-            <Button
+            <Button android:backgroundTint="@null"
                 android:id="@+id/action_previous_contact"
                 android:layout_width="@dimen/touch_target"
                 android:layout_height="@dimen/touch_target"
@@ -207,7 +239,7 @@
                 android:padding="@dimen/space_4"
                 android:src="@drawable/ic_mic_white" />
 
-            <Button
+            <Button android:backgroundTint="@null"
                 android:id="@+id/action_next_contact"
                 android:layout_width="@dimen/touch_target"
                 android:layout_height="@dimen/touch_target"
@@ -221,7 +253,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:text="1 of 8"
+            android:id="@+id/contact_count" android:text="1 of 8"
             style="@style/Text.VoiceDeck.Caption" />
     </LinearLayout>
 </ScrollView>

@@ -90,7 +90,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_2"
-            android:text="“Sarah…”"
+            android:id="@+id/listening_heard_text" android:text="Listening for a contact name…"
             android:textColor="@color/vd_text"
             android:textSize="28sp"
             android:textStyle="bold" />
@@ -113,7 +113,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
-        <com.google.android.material.button.MaterialButton
+        <Button android:backgroundTint="@null"
             android:id="@+id/action_cancel_listening"
             android:layout_width="0dp"
             android:layout_height="@dimen/button_height"
@@ -122,7 +122,7 @@
             android:text="Cancel"
             style="@style/Widget.VoiceDeck.Button.Outline" />
 
-        <com.google.android.material.button.MaterialButton
+        <Button android:backgroundTint="@null"
             android:id="@+id/action_stop_listening"
             android:layout_width="0dp"
             android:layout_height="@dimen/button_height"

@@ -23,6 +23,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:id="@+id/match_list"
         android:layout_marginTop="@dimen/space_6"
         android:background="@drawable/bg_card"
         android:orientation="vertical"
@@ -36,6 +37,6 @@
 
     <Space android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" />
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="None of these look right?" style="@style/Text.VoiceDeck.Body" />
-    <com.google.android.material.button.MaterialButton android:id="@+id/action_none_matches" android:layout_width="match_parent" android:layout_height="@dimen/button_height_secondary" android:layout_marginTop="@dimen/space_2" android:text="I meant someone else" style="@style/Widget.VoiceDeck.Button.Text" />
+    <Button android:backgroundTint="@null" android:id="@+id/action_none_matches" android:layout_width="match_parent" android:layout_height="@dimen/button_height_secondary" android:layout_marginTop="@dimen/space_2" android:text="I meant someone else" style="@style/Widget.VoiceDeck.Button.Text" />
 </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -47,7 +47,7 @@
         android:layout_marginTop="@dimen/space_5"
         android:background="@drawable/bg_card"
         android:orientation="vertical"
-        android:padding="@dimen/space_3"
+        android:padding="0dp"
         android:visibility="gone">
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="@dimen/space_3" android:text="Sarah Mitchell&#10;+44 7700 900 138  ›" android:textColor="@color/vd_text" android:textSize="16sp" android:textStyle="bold" android:id="@+id/search_result_sarah" />
         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />

@@ -16,4 +16,5 @@
     <color name="vd_white">#FFFFFF</color>
     <color name="vd_danger">#9D5349</color>
     <color name="vd_transparent">#00000000</color>
+    <color name="vd_muted">#857E72</color>
 </resources>

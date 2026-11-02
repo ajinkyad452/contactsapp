@@ -26,9 +26,9 @@
 
     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_6" android:text="REQUIRED PERMISSIONS" style="@style/Text.VoiceDeck.Eyebrow" />
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:background="@drawable/bg_card" android:orientation="vertical" android:padding="@dimen/space_3">
-        <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/permission_microphone" android:layout_width="match_parent" android:layout_height="72dp" android:checked="true" android:padding="@dimen/space_2" android:text="Microphone&#10;Listen when you start voice search" android:textColor="@color/vd_text" android:textStyle="bold" />
+        <Switch android:id="@+id/permission_microphone" android:layout_width="match_parent" android:layout_height="72dp" android:checked="true" android:padding="@dimen/space_2" android:text="Microphone&#10;Listen when you start voice search" android:textColor="@color/vd_text" android:textStyle="bold" />
         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />
-        <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/permission_contacts" android:layout_width="match_parent" android:layout_height="72dp" android:checked="true" android:padding="@dimen/space_2" android:text="Contacts&#10;Find and display people you save" android:textColor="@color/vd_text" android:textStyle="bold" />
+        <Switch android:id="@+id/permission_contacts" android:layout_width="match_parent" android:layout_height="72dp" android:checked="true" android:padding="@dimen/space_2" android:text="Contacts&#10;Find and display people you save" android:textColor="@color/vd_text" android:textStyle="bold" />
     </LinearLayout>
 
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" android:text="Android may open system settings when you change a permission." style="@style/Text.VoiceDeck.Caption" />

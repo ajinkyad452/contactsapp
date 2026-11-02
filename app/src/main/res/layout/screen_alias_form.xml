@@ -19,19 +19,19 @@
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Add alias" style="@style/Text.VoiceDeck.Title" />
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="Link a familiar nickname to an existing contact." style="@style/Text.VoiceDeck.Body" />
 
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_6" android:text="NICKNAME" style="@style/Text.VoiceDeck.Eyebrow" />
-    <EditText android:id="@+id/alias_nickname" android:layout_width="match_parent" android:layout_height="@dimen/field_height" android:layout_marginTop="@dimen/space_2" android:hint="e.g. Saz" android:inputType="textPersonName" android:text="Saz" style="@style/Widget.VoiceDeck.Field" />
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" android:text="Nickname" style="@style/Text.VoiceDeck.Eyebrow" />
+    <EditText android:id="@+id/alias_nickname" android:layout_width="match_parent" android:layout_height="@dimen/field_height" android:layout_marginTop="@dimen/space_2" android:hint="e.g. Saz" android:inputType="textPersonName" style="@style/Widget.VoiceDeck.Field" />
 
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_5" android:text="CONTACT" style="@style/Text.VoiceDeck.Eyebrow" />
-    <TextView android:id="@+id/alias_contact_selector" android:layout_width="match_parent" android:layout_height="64dp" android:layout_marginTop="@dimen/space_2" android:background="@drawable/bg_card" android:gravity="center_vertical" android:paddingHorizontal="@dimen/space_4" android:text="Sarah Mitchell                                                      ›" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_5" android:text="Contact" style="@style/Text.VoiceDeck.Eyebrow" />
+    <TextView android:id="@+id/alias_contact_selector" android:layout_width="match_parent" android:layout_height="64dp" android:layout_marginTop="@dimen/space_2" android:background="@drawable/bg_card" android:gravity="center_vertical" android:paddingHorizontal="@dimen/space_4" android:text="Select contact  ›" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
 
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_5" android:text="LANGUAGE" style="@style/Text.VoiceDeck.Eyebrow" />
-    <TextView android:id="@+id/alias_language_selector" android:layout_width="match_parent" android:layout_height="64dp" android:layout_marginTop="@dimen/space_2" android:background="@drawable/bg_card" android:gravity="center_vertical" android:paddingHorizontal="@dimen/space_4" android:text="English (United Kingdom)                                     ›" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_5" android:text="Language" style="@style/Text.VoiceDeck.Eyebrow" />
+    <TextView android:id="@+id/alias_language_selector" android:layout_width="match_parent" android:layout_height="64dp" android:layout_marginTop="@dimen/space_2" android:background="@drawable/bg_card" android:gravity="center_vertical" android:paddingHorizontal="@dimen/space_4" android:text="English  ›" android:textColor="@color/vd_text" android:textSize="15sp" android:textStyle="bold" />
 
-    <Space android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" />
+    <Space android:layout_width="1dp" android:layout_height="28dp" />
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-        <com.google.android.material.button.MaterialButton android:id="@+id/action_cancel_alias" android:layout_width="0dp" android:layout_height="@dimen/button_height" android:layout_marginEnd="@dimen/space_2" android:layout_weight="1" android:text="Cancel" style="@style/Widget.VoiceDeck.Button.Outline" />
-        <com.google.android.material.button.MaterialButton android:id="@+id/action_save_alias" android:layout_width="0dp" android:layout_height="@dimen/button_height" android:layout_marginStart="@dimen/space_2" android:layout_weight="1" android:text="Save alias" style="@style/Widget.VoiceDeck.Button.Primary" />
+        <Button android:backgroundTint="@null" android:id="@+id/action_cancel_alias" android:layout_width="0dp" android:layout_height="@dimen/button_height" android:layout_marginEnd="@dimen/space_2" android:layout_weight="1" android:text="Cancel" style="@style/Widget.VoiceDeck.Button.Outline" />
+        <Button android:backgroundTint="@null" android:id="@+id/action_save_alias" android:layout_width="0dp" android:layout_height="@dimen/button_height" android:layout_marginStart="@dimen/space_2" android:layout_weight="1" android:text="Save alias" style="@style/Widget.VoiceDeck.Button.Primary" />
     </LinearLayout>
 </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
