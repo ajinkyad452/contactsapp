@@ -123,3 +123,10 @@ Device checks still required on Pixel 4a and Pixel 7 Pro:
 Manage aliases scrolls as one page, including the search field and full alias list. It uses the existing outer ScrollView rather than a nested scroller. Badge initials use the first and last letter/number words, ignoring emoji and symbols; names without usable words show a neutral bullet. Saved contact names are unchanged.
 
 On a phone, verify that a long alias list scrolls to the final row, including with the keyboard open or a larger font size. Check badges for a synthetic contact name with a trailing emoji and for Marathi/Hindi names. Automated initials checks cover emoji, combining marks, supplementary letters, punctuation, empty names, and locale-independent uppercase.
+
+
+### Recording feedback
+
+The microphone pulses once the recognition service reports it is ready. The existing seven waveform bars respond to `onRmsChanged()` volume updates; providers that do not report volume leave the bars still. No audio is stored or analyzed separately, and there is no new dependency. System-disabled animations remain disabled.
+
+Stop, Cancel, end of speech, results, errors, leaving the listening screen, or putting the app in the background stop and reset the animations immediately. Processing and idle screens remain still. Test on both phones with speech, silence, Stop, Cancel, Android Back, Home/backgrounding, and a recognition error; confirm no late callback restarts the animation.

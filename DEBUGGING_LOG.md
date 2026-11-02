@@ -105,3 +105,12 @@ Allowing microphone access only while the speech service is in use does not itse
 - Lightweight JVM harness: all 53 checks passed, including 8 new Unicode initials tests and the 45 existing search/dictionary checks. Minimal Android/Room/JUnit stubs are used; this is not an Android Gradle test run.
 - Java syntax parsing passed for all 24 Java source/test files. Alias layout XML parses; screen and child have wrap-content height and there is no nested scrolling container. `git diff --check` passed.
 - Full Android build and physical-device scrolling/layout tests remain pending: Gradle/Android SDK and attached phones are unavailable here. Retest with many aliases, search/keyboard open, and larger fonts.
+
+
+## 2026-11-02 — Recording-only microphone and waveform animation
+
+- Added `RecordingAnimationController`: a subtle microphone scale pulse plus smoothed, clamped RMS-driven bar scaling. It uses the existing listening layout IDs and no new dependency or audio capture.
+- Start visuals only in the active session's `onReadyForSpeech` callback. Pending readiness is static. Stop and reset on Stop/Cancel, end of speech, results/errors, screen changes, backgrounding, and destruction. Old recognizer callbacks are ignored; late readiness/volume updates cannot restart stopped visuals.
+- Disabled system animations are respected. RMS values are visual feedback, not calibrated sound-pressure measurements; bar response depends on the device recognition provider.
+- Validation: Java 17 compiler syntax parsing passed for the two changed/new animation sources; XML/reference/lifecycle hook checks and `git diff --check` passed. The previous 53 search/initials/dictionary checks remain recorded above; those components were not changed by this update.
+- Not verified: full Android compilation, real-time animation rendering, provider RMS behavior, and physical-device lifecycle tests. Gradle/Android SDK and test phones remain unavailable. Test speech/silence, Stop/Cancel, end-of-speech processing, errors, navigation, backgrounding, and rapid retry on Pixel 4a and Pixel 7 Pro.

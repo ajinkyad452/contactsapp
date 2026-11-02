@@ -17,3 +17,7 @@ Also fixes Manage aliases scrolling and emoji-related broken initials.
 
 No release version bump, database schema change or new dependency.
 No commits or pushes have been made to GitHub.
+
+Recording animation update: microphone pulses and volume-reactive bars run only while
+recording. Stop/Cancel, speech ending, errors/results, navigation and backgrounding
+stop/reset them. Syntax and lifecycle hook checks passed; phone/build tests pending.

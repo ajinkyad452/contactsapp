@@ -106,6 +106,8 @@ public class MainActivity extends Activity {
     private String pendingAliasForSetup;
     private TextView heardText;
     private SpeechRecognizer speechRecognizer;
+    private RecordingAnimationController recordingAnimation;
+    private boolean recordingRequested;
     private String language = "en-IN";
     private final List<ContactItem> contacts = new ArrayList<>();
     private ContactNameMatcher contactNameMatcher;
@@ -479,6 +481,9 @@ public class MainActivity extends Activity {
     }
 
     private View showFigmaScreen(int layoutId) {
+        if (layoutId != R.layout.screen_listening && speechRecognizer != null) finishListeningSession();
+        stopRecordingVisuals();
+        recordingAnimation = null;
         refreshManualSearch = null;
         currentFigmaLayout = layoutId;
         if (statusText != null) statusText.setVisibility(layoutId == R.layout.screen_contact ? View.GONE : View.VISIBLE);
@@ -517,6 +522,8 @@ public class MainActivity extends Activity {
             if (manual != null) manual.setOnClickListener(v -> showManualSearch());
             statusText.setText("");
         } else {
+            recordingAnimation = new RecordingAnimationController(
+                    screen.findViewById(R.id.listening_mic), screen.findViewById(R.id.waveform));
             TextView heard = screen.findViewById(R.id.listening_heard_text);
             if (heard != null) heardText = heard;
             Button cancel = screen.findViewById(R.id.action_cancel_listening);
@@ -526,6 +533,8 @@ public class MainActivity extends Activity {
                 showListeningPrompt(false);
             });
             if (stop != null) stop.setOnClickListener(v -> {
+                stopRecordingVisuals();
+                statusText.setText(getString(R.string.processing_your_request));
                 if (speechRecognizer != null) {
                     try { speechRecognizer.stopListening(); } catch (Exception ignored) { finishListeningSession(); }
                 }
@@ -737,27 +746,39 @@ public class MainActivity extends Activity {
             statusText.setText(getString(R.string.speech_recognition_is_unavailable_on_this_device_use_manual_searc));
             return;
         }
+        finishListeningSession();
         try {
-            if (speechRecognizer != null) speechRecognizer.destroy();
-            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
+            showListeningPrompt(true);
+            recordingRequested = true;
+            final SpeechRecognizer session = SpeechRecognizer.createSpeechRecognizer(this);
+            speechRecognizer = session;
             speechRecognizer.setRecognitionListener(new RecognitionListener() {
                 @Override public void onReadyForSpeech(Bundle params) {
-                    showListeningPrompt(true);
+                    if (speechRecognizer != session || !recordingRequested) return;
+                    if (recordingAnimation != null) recordingAnimation.start();
                 }
                 @Override public void onBeginningOfSpeech() {
+                    if (speechRecognizer != session || !recordingRequested) return;
                     if (heardText != null) heardText.setText(getString(R.string.listening));
                 }
-                @Override public void onRmsChanged(float rmsdB) {}
+                @Override public void onRmsChanged(float rmsdB) {
+                    if (speechRecognizer == session && recordingRequested && recordingAnimation != null)
+                        recordingAnimation.onVolume(rmsdB);
+                }
                 @Override public void onBufferReceived(byte[] buffer) {}
                 @Override public void onEndOfSpeech() {
+                    if (speechRecognizer != session) return;
+                    stopRecordingVisuals();
                     statusText.setText(getString(R.string.processing_your_request));
                 }
                 @Override public void onError(int error) {
+                    if (speechRecognizer != session) return;
                     finishListeningSession();
                     showListeningPrompt(false);
                     statusText.setText(speechErrorMessage(error));
                 }
                 @Override public void onResults(Bundle results) {
+                    if (speechRecognizer != session) return;
                     finishListeningSession();
                     ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                     if (matches != null && !matches.isEmpty()) findContact(matches.get(0), true);
@@ -768,6 +789,7 @@ public class MainActivity extends Activity {
 
                 }
                 @Override public void onPartialResults(Bundle partialResults) {
+                    if (speechRecognizer != session) return;
                     ArrayList<String> p = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                     if (p != null && !p.isEmpty() && heardText != null) heardText.setText(p.get(0));
 
@@ -781,8 +803,8 @@ public class MainActivity extends Activity {
             intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
             intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
             speechRecognizer.startListening(intent);
-            showListeningPrompt(true);
         } catch (Exception e) {
+            finishListeningSession();
             showListeningPrompt(false);
             statusText.setText(getString(R.string.could_not_start_voice_search_try_manual_search));
         }
@@ -804,7 +826,13 @@ public class MainActivity extends Activity {
                 .show();
     }
 
+    private void stopRecordingVisuals() {
+        recordingRequested = false;
+        if (recordingAnimation != null) recordingAnimation.stop();
+    }
+
     private void finishListeningSession() {
+        stopRecordingVisuals();
         SpeechRecognizer active = speechRecognizer;
         speechRecognizer = null;
         if (active != null) {
@@ -2213,6 +2241,11 @@ public class MainActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
+        if (currentFigmaLayout == R.layout.screen_listening) {
+            finishListeningSession();
+            showListeningPrompt(false);
+            return;
+        }
         if (showingDictionaryManager || showingAliasManager) {
             showSettings();
             return;
@@ -2245,7 +2278,15 @@ public class MainActivity extends Activity {
         super.onBackPressed();
     }
 
+    @Override protected void onStop() {
+        finishListeningSession();
+        if (currentFigmaLayout == R.layout.screen_listening) showListeningPrompt(false);
+        super.onStop();
+    }
+
     @Override protected void onDestroy() {
+        finishListeningSession();
+        recordingAnimation = null;
         refreshManualSearch = null;
         if (languageChooser != null) languageChooser.dismiss();
         if (splashFinish != null) splashHandler.removeCallbacks(splashFinish);

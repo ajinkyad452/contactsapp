@@ -1,6 +1,8 @@
 # VoiceDeck Changelog
 
 ## Unreleased
+- Pulse the listening microphone and animate waveform bars from recognition-service volume updates only during active recording. Reset immediately on Stop/Cancel, end of speech, results/errors, navigation, backgrounding, and destruction.
+- Ignore callbacks from obsolete recognition sessions and late readiness/volume updates after recording has stopped. Respect disabled system animations.
 - Fix Manage aliases scrolling by allowing its full row content to determine the height inside the existing outer ScrollView.
 - Generate contact initials from Unicode character boundaries and ignore emoji/symbol-only words, preventing broken-character badges; share this behavior across contact/search/alias badges.
 - Fix typed search ignoring saved aliases; use a language-scoped local search index for partial names, aliases, and formatted phone numbers, preserving all matching contacts.
