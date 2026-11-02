@@ -88,3 +88,20 @@ Allowing microphone access only while the speech service is in use does not itse
 - No Gradle executable/wrapper or Android SDK is installed. A probe to the Android SDK download host timed out. `:app:testDebugUnitTest`, `:app:assembleDebug`, and `:app:connectedDebugAndroidTest` were not run.
 - New Android resource-selection tests are supplied but were not executed on a device. Activity recreation, language persistence, actual speech-provider behavior, and visual layout at large font sizes need device verification.
 - Pixel 4a / Pixel 7 Pro are not connected to this environment. No physical-device test result is claimed.
+
+
+## 2026-11-02 — Manage aliases clipping and broken initials
+
+### Report and source findings
+- User screenshot showed the alias list clipped before the final rows, with scrolling ineffective, and replacement-character diamonds in some badges.
+- `showFigmaScreen()` assigned a fixed height to the screen. The alias layout also constrained its content to the parent height, clipping its expanding list before the outer ScrollView could measure the overflow.
+- Initials used `substring(0, 1)` on whitespace-separated words. An emoji-only word could contribute an isolated UTF-16 surrogate, displayed as a replacement character.
+
+### Fix
+- Let the Manage aliases screen and its content wrap their full natural height. Keep the existing outer ScrollView as the only scroll container; no touch-interception workaround or nested scrolling is introduced.
+- Add a shared `ContactInitials` utility for alias, typed-search and contact badges. Extract letter/number words, ignore symbols/emoji, and use character boundaries to preserve surrogate pairs and combining marks. Keep stored/displayed contact names untouched.
+
+### Validation
+- Lightweight JVM harness: all 53 checks passed, including 8 new Unicode initials tests and the 45 existing search/dictionary checks. Minimal Android/Room/JUnit stubs are used; this is not an Android Gradle test run.
+- Java syntax parsing passed for all 24 Java source/test files. Alias layout XML parses; screen and child have wrap-content height and there is no nested scrolling container. `git diff --check` passed.
+- Full Android build and physical-device scrolling/layout tests remain pending: Gradle/Android SDK and attached phones are unavailable here. Retest with many aliases, search/keyboard open, and larger fonts.

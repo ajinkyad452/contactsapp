@@ -9,9 +9,11 @@ Typed search now includes selected-language aliases, including partial names.
 Settings > App and voice language switches the interface and recognition language
 between English, Hindi and Marathi. Choice applies immediately and survives restart.
 
-45 logic tests passed in a lightweight JVM harness; Java syntax and resource checks
+53 logic tests passed in a lightweight JVM harness; Java syntax and resource checks
 passed. Full Gradle build and phone/instrumented testing were not available here.
 See README.md and DEBUGGING_LOG.md for validation steps and limits.
+
+Also fixes Manage aliases scrolling and emoji-related broken initials.
 
 No release version bump, database schema change or new dependency.
 No commits or pushes have been made to GitHub.

@@ -1,6 +1,8 @@
 # VoiceDeck Changelog
 
 ## Unreleased
+- Fix Manage aliases scrolling by allowing its full row content to determine the height inside the existing outer ScrollView.
+- Generate contact initials from Unicode character boundaries and ignore emoji/symbol-only words, preventing broken-character badges; share this behavior across contact/search/alias badges.
 - Fix typed search ignoring saved aliases; use a language-scoped local search index for partial names, aliases, and formatted phone numbers, preserving all matching contacts.
 - Refresh typed results after asynchronous alias loading and after alias changes; report alias-load failures while keeping ordinary contact search available.
 - Apply the selected English, Hindi, or Marathi language to the app interface as well as speech recognition, immediately and across restarts.

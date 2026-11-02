@@ -116,3 +116,10 @@ Device checks still required on Pixel 4a and Pixel 7 Pro:
 2. Give two test contacts the same alias; confirm both appear. Edit/delete an alias, then return to typed search and verify the result updates. Start typing immediately after launch to exercise asynchronous loading.
 3. Switch English → Hindi → Marathi → English in Settings. Confirm Settings changes immediately, return Home, and check typed search, contact actions, alias/vocabulary forms, and error messages. Restart in each language to confirm persistence.
 4. Check Devanagari rendering and longer labels at larger font sizes on both phones. Speech-recognition availability still depends on the installed recognition provider.
+
+
+### Alias list scrolling and initials
+
+Manage aliases scrolls as one page, including the search field and full alias list. It uses the existing outer ScrollView rather than a nested scroller. Badge initials use the first and last letter/number words, ignoring emoji and symbols; names without usable words show a neutral bullet. Saved contact names are unchanged.
+
+On a phone, verify that a long alias list scrolls to the final row, including with the keyboard open or a larger font size. Check badges for a synthetic contact name with a trailing emoji and for Marathi/Hindi names. Automated initials checks cover emoji, combining marks, supplementary letters, punctuation, empty names, and locale-independent uppercase.

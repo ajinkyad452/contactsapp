@@ -488,7 +488,11 @@ public class MainActivity extends Activity {
         View screen = getLayoutInflater().inflate(layoutId, content, false);
         int availableHeight = (int) (getResources().getDisplayMetrics().heightPixels
                 / getResources().getDisplayMetrics().density) - 150;
-        content.addView(screen, new LinearLayout.LayoutParams(-1, Math.max(dp(480), dp(availableHeight))));
+        // Alias rows must contribute their full height to the existing outer ScrollView.
+        // A fixed-height screen clips the list before the ScrollView can measure its overflow.
+        int screenHeight = layoutId == R.layout.screen_aliases
+                ? ViewGroup.LayoutParams.WRAP_CONTENT : Math.max(dp(480), dp(availableHeight));
+        content.addView(screen, new LinearLayout.LayoutParams(-1, screenHeight));
         applyManrope(screen);
         return screen;
     }
@@ -1463,11 +1467,7 @@ public class MainActivity extends Activity {
     }
 
     private String getInitials(String name) {
-        if (name == null || name.trim().isEmpty()) return "?";
-        String[] parts = name.trim().split("\\s+");
-        if (parts.length == 1) return parts[0].substring(0, 1).toUpperCase(Locale.ROOT);
-        return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1))
-                .toUpperCase(Locale.ROOT);
+        return ContactInitials.fromName(name);
     }
 
     private void returnToVoiceSearch() {
@@ -1780,11 +1780,7 @@ public class MainActivity extends Activity {
     }
 
     private String initials(String name) {
-        String[] parts = safe(name).trim().split("\\s+");
-        if (parts.length == 0 || parts[0].isEmpty()) return "?";
-        String result = parts[0].substring(0, 1);
-        if (parts.length > 1 && !parts[1].isEmpty()) result += parts[1].substring(0, 1);
-        return result.toUpperCase(Locale.ROOT);
+        return ContactInitials.fromName(name);
     }
 
     private TextView iconAction(String symbol, int color, String description) {
