@@ -87,3 +87,32 @@ Before contributing or pushing changes, follow the [Repository Privacy and Secre
 ### Contact matching tests
 
 Run the local JVM regression tests with `./gradlew :app:testDebugUnitTest`. The tests cover complete-name matching before greeting/command filtering and ambiguity safeguards.
+
+## Typed aliases and app language (Unreleased)
+
+- Typed search now searches contact names, the selected language's saved aliases, and phone numbers. Partial alias matches are supported. Shared aliases show all linked contacts; select a result to open its card.
+- Search waits for the local alias index and refreshes the current query when loading completes. Alias edits and deletions rebuild both voice and typed-search indexes. Aliases remain scoped to their saved language, as in voice search.
+- Settings > App and voice language selects English, Hindi, or Marathi for both the interface and speech recognition. The app applies the choice immediately, returns to Settings, and remembers it after restart, regardless of the device language.
+- Screens, dialogs, errors, validation messages, vocabulary category labels, and accessibility descriptions use translated Android resources. Contact data, saved aliases, custom vocabulary, product names, and externally opened legal pages retain their original content. Android permission dialogs and other apps use their own language settings.
+- No dependency, database schema, permission, or release-version changes are required.
+
+### Validate this change from the command line
+
+With Java 17, Gradle 8.9, and Android SDK 35 configured:
+
+```bash
+gradle :app:testDebugUnitTest :app:assembleDebug
+```
+
+With a test device connected, run resource and existing Room instrumented tests:
+
+```bash
+gradle :app:connectedDebugAndroidTest
+```
+
+Device checks still required on Pixel 4a and Pixel 7 Pro:
+
+1. Save a synthetic alias against a test contact. Type the full alias and a partial alias; confirm that the linked card opens. Confirm ordinary name and number search still work.
+2. Give two test contacts the same alias; confirm both appear. Edit/delete an alias, then return to typed search and verify the result updates. Start typing immediately after launch to exercise asynchronous loading.
+3. Switch English → Hindi → Marathi → English in Settings. Confirm Settings changes immediately, return Home, and check typed search, contact actions, alias/vocabulary forms, and error messages. Restart in each language to confirm persistence.
+4. Check Devanagari rendering and longer labels at larger font sizes on both phones. Speech-recognition availability still depends on the installed recognition provider.

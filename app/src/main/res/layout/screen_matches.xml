@@ -16,9 +16,9 @@
     app:layout_constraintTop_toTopOf="parent"
     app:layout_constraintWidth_max="@dimen/content_max_width">
 
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="3 POSSIBLE MATCHES" style="@style/Text.VoiceDeck.Eyebrow" />
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="Which contact did you mean?" style="@style/Text.VoiceDeck.Title" />
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="Choose the right Sarah to continue." style="@style/Text.VoiceDeck.Body" />
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/possible_matches" style="@style/Text.VoiceDeck.Eyebrow" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="@string/which_contact_did_you_mean" style="@style/Text.VoiceDeck.Title" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="@string/choose_a_contact_to_continue" style="@style/Text.VoiceDeck.Body" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -28,15 +28,15 @@
         android:background="@drawable/bg_card"
         android:orientation="vertical"
         android:padding="@dimen/space_3">
-        <TextView android:id="@+id/match_one" android:layout_width="match_parent" android:layout_height="80dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="Sarah Mitchell&#10;+44 7700 900 138                                     ✓" android:textColor="@color/vd_text" android:textSize="16sp" android:textStyle="bold" />
+        <TextView android:id="@+id/match_one" android:layout_width="match_parent" android:layout_height="80dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="" android:textColor="@color/vd_text" android:textSize="16sp" android:textStyle="bold" />
         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />
-        <TextView android:id="@+id/match_two" android:layout_width="match_parent" android:layout_height="80dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="Sarah James&#10;+44 7700 900 452                                     ✓" android:textColor="@color/vd_text" android:textSize="16sp" android:textStyle="bold" />
+        <TextView android:id="@+id/match_two" android:layout_width="match_parent" android:layout_height="80dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="" android:textColor="@color/vd_text" android:textSize="16sp" android:textStyle="bold" />
         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />
-        <TextView android:id="@+id/match_three" android:layout_width="match_parent" android:layout_height="80dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="Sarah Chen&#10;+44 7700 900 729                                     ✓" android:textColor="@color/vd_text" android:textSize="16sp" android:textStyle="bold" />
+        <TextView android:id="@+id/match_three" android:layout_width="match_parent" android:layout_height="80dp" android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical" android:padding="@dimen/space_3" android:text="" android:textColor="@color/vd_text" android:textSize="16sp" android:textStyle="bold" />
     </LinearLayout>
 
     <Space android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" />
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="None of these look right?" style="@style/Text.VoiceDeck.Body" />
-    <Button android:backgroundTint="@null" android:id="@+id/action_none_matches" android:layout_width="match_parent" android:layout_height="@dimen/button_height_secondary" android:layout_marginTop="@dimen/space_2" android:text="I meant someone else" style="@style/Widget.VoiceDeck.Button.Text" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="@string/none_of_these_look_right" style="@style/Text.VoiceDeck.Body" />
+    <Button android:backgroundTint="@null" android:id="@+id/action_none_matches" android:layout_width="match_parent" android:layout_height="@dimen/button_height_secondary" android:layout_marginTop="@dimen/space_2" android:text="@string/i_meant_someone_else" style="@style/Widget.VoiceDeck.Button.Text" />
 </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

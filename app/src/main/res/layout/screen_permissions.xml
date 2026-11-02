@@ -16,21 +16,21 @@
     app:layout_constraintTop_toTopOf="parent"
     app:layout_constraintWidth_max="@dimen/content_max_width">
 
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="App permissions" style="@style/Text.VoiceDeck.Title" />
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="VoiceDeck only asks for access needed to connect you with your contacts." style="@style/Text.VoiceDeck.Body" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/app_permissions" style="@style/Text.VoiceDeck.Title" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="@string/voicedeck_only_asks_for_access_needed_to_connect_you_with_your_co" style="@style/Text.VoiceDeck.Body" />
 
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_5" android:background="@color/vd_sage" android:orientation="vertical" android:padding="@dimen/space_5">
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Your information stays private" style="@style/Text.VoiceDeck.SectionTitle" />
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_1" android:text="Contact matching happens on this device." style="@style/Text.VoiceDeck.Body" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/your_information_stays_private" style="@style/Text.VoiceDeck.SectionTitle" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_1" android:text="@string/contact_matching_happens_on_this_device" style="@style/Text.VoiceDeck.Body" />
     </LinearLayout>
 
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_6" android:text="REQUIRED PERMISSIONS" style="@style/Text.VoiceDeck.Eyebrow" />
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_6" android:text="@string/required_permissions" style="@style/Text.VoiceDeck.Eyebrow" />
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:background="@drawable/bg_card" android:orientation="vertical" android:padding="@dimen/space_3">
-        <Switch android:id="@+id/permission_microphone" android:layout_width="match_parent" android:layout_height="72dp" android:checked="true" android:padding="@dimen/space_2" android:text="Microphone&#10;Listen when you start voice search" android:textColor="@color/vd_text" android:textStyle="bold" />
+        <Switch android:id="@+id/permission_microphone" android:layout_width="match_parent" android:layout_height="72dp" android:checked="true" android:padding="@dimen/space_2" android:text="@string/microphone_listen_when_you_start_voice_search" android:textColor="@color/vd_text" android:textStyle="bold" />
         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />
-        <Switch android:id="@+id/permission_contacts" android:layout_width="match_parent" android:layout_height="72dp" android:checked="true" android:padding="@dimen/space_2" android:text="Contacts&#10;Find and display people you save" android:textColor="@color/vd_text" android:textStyle="bold" />
+        <Switch android:id="@+id/permission_contacts" android:layout_width="match_parent" android:layout_height="72dp" android:checked="true" android:padding="@dimen/space_2" android:text="@string/contacts_find_and_display_people_you_save" android:textColor="@color/vd_text" android:textStyle="bold" />
     </LinearLayout>
 
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" android:text="Android may open system settings when you change a permission." style="@style/Text.VoiceDeck.Caption" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" android:text="@string/android_may_open_system_settings_when_you_change_a_permission" style="@style/Text.VoiceDeck.Caption" />
 </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

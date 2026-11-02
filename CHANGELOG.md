@@ -1,6 +1,12 @@
 # VoiceDeck Changelog
 
 ## Unreleased
+- Fix typed search ignoring saved aliases; use a language-scoped local search index for partial names, aliases, and formatted phone numbers, preserving all matching contacts.
+- Refresh typed results after asynchronous alias loading and after alias changes; report alias-load failures while keeping ordinary contact search available.
+- Apply the selected English, Hindi, or Marathi language to the app interface as well as speech recognition, immediately and across restarts.
+- Move screen labels, dialogs, errors, form validation, vocabulary categories, and accessibility descriptions into translated Android resources; allow Settings labels to wrap.
+- Replace design-only contact placeholders with runtime content and show the installed version on the localized Legal screen.
+- Add typed-search regression tests and Android resource-selection tests for localization.
 - Add `SpeechCommandFilter` as a Room-independent pure-Java component and replace the matcher's hardcoded command-word list with enabled dictionary terms.
 - Seed the local speech dictionary with starter English, Hindi, and Marathi commands, greetings, and filler phrases using conflict-ignore inserts that preserve user edits.
 - Load the selected language's enabled dictionary terms asynchronously through `SpeechDictionaryRepository`; queue a search until loading completes and use bundled in-memory defaults if database loading fails.

@@ -16,11 +16,11 @@
     app:layout_constraintTop_toTopOf="parent"
     app:layout_constraintWidth_max="@dimen/content_max_width">
 
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Manage aliases" style="@style/Text.VoiceDeck.Title" />
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="Teach VoiceDeck the names you use every day." style="@style/Text.VoiceDeck.Body" />
-    <EditText android:id="@+id/alias_search" android:layout_width="match_parent" android:layout_height="@dimen/field_height" android:layout_marginTop="@dimen/space_5" android:hint="Search aliases" android:inputType="text" style="@style/Widget.VoiceDeck.Field" />
-    <Button android:backgroundTint="@null" android:id="@+id/action_add_alias" android:layout_width="match_parent" android:layout_height="@dimen/button_height_secondary" android:layout_marginTop="@dimen/space_3" android:text="+  Add alias" style="@style/Widget.VoiceDeck.Button.Outline" />
-    <TextView android:id="@+id/alias_count" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_5" android:text="SAVED ALIASES" style="@style/Text.VoiceDeck.Eyebrow" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/manage_aliases" style="@style/Text.VoiceDeck.Title" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="@string/teach_voicedeck_the_names_you_use_every_day" style="@style/Text.VoiceDeck.Body" />
+    <EditText android:id="@+id/alias_search" android:layout_width="match_parent" android:layout_height="@dimen/field_height" android:layout_marginTop="@dimen/space_5" android:hint="@string/search_aliases" android:inputType="text" style="@style/Widget.VoiceDeck.Field" />
+    <Button android:backgroundTint="@null" android:id="@+id/action_add_alias" android:layout_width="match_parent" android:layout_height="@dimen/button_height_secondary" android:layout_marginTop="@dimen/space_3" android:text="@string/add_alias_2" style="@style/Widget.VoiceDeck.Button.Outline" />
+    <TextView android:id="@+id/alias_count" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_5" android:text="@string/saved_aliases" style="@style/Text.VoiceDeck.Eyebrow" />
 
     <LinearLayout
         android:id="@+id/alias_list"
@@ -35,7 +35,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="@dimen/space_3"
-            android:text="Loading aliases…"
+            android:text="@string/loading_aliases"
             style="@style/Text.VoiceDeck.Body" />
     </LinearLayout>
 </LinearLayout>

@@ -16,15 +16,15 @@
     app:layout_constraintTop_toTopOf="parent"
     app:layout_constraintWidth_max="@dimen/content_max_width">
 
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Find a contact" style="@style/Text.VoiceDeck.Title" />
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="Type a name or phone number." style="@style/Text.VoiceDeck.Body" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/find_a_contact" style="@style/Text.VoiceDeck.Title" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="@string/type_a_name_or_phone_number" style="@style/Text.VoiceDeck.Body" />
 
     <EditText
         android:id="@+id/search_input"
         android:layout_width="match_parent"
         android:layout_height="@dimen/field_height"
         android:layout_marginTop="@dimen/space_5"
-        android:hint="Search contacts"
+        android:hint="@string/search_contacts"
         android:inputType="textPersonName"
         style="@style/Widget.VoiceDeck.Field" />
 
@@ -36,8 +36,8 @@
         android:gravity="center"
         android:orientation="vertical"
         android:padding="@dimen/space_8">
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Who are you looking for?" style="@style/Text.VoiceDeck.SectionTitle" />
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:gravity="center" android:text="Start typing a name or phone number to search your contacts." style="@style/Text.VoiceDeck.Body" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/who_are_you_looking_for" style="@style/Text.VoiceDeck.SectionTitle" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:gravity="center" android:text="@string/start_typing_a_name_or_phone_number_to_search_your_contacts" style="@style/Text.VoiceDeck.Body" />
     </LinearLayout>
 
     <LinearLayout
@@ -49,9 +49,9 @@
         android:orientation="vertical"
         android:padding="0dp"
         android:visibility="gone">
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="@dimen/space_3" android:text="Sarah Mitchell&#10;+44 7700 900 138  ›" android:textColor="@color/vd_text" android:textSize="16sp" android:textStyle="bold" android:id="@+id/search_result_sarah" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="@dimen/space_3" android:text="" android:textColor="@color/vd_text" android:textSize="16sp" android:textStyle="bold" android:id="@+id/search_result_sarah" />
         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/vd_border" />
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="@dimen/space_3" android:text="Sarah James&#10;+44 7700 900 452  ›" android:textColor="@color/vd_text" android:textSize="16sp" android:textStyle="bold" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="@dimen/space_3" android:text="" android:textColor="@color/vd_text" android:textSize="16sp" android:textStyle="bold" />
     </LinearLayout>
 
     <LinearLayout
@@ -63,8 +63,8 @@
         android:orientation="vertical"
         android:padding="@dimen/space_8"
         android:visibility="gone">
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="No contacts found" style="@style/Text.VoiceDeck.SectionTitle" />
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:gravity="center" android:text="Try another spelling or search by phone number." style="@style/Text.VoiceDeck.Body" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/no_contacts_found" style="@style/Text.VoiceDeck.SectionTitle" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:gravity="center" android:text="@string/try_another_spelling_or_search_by_phone_number" style="@style/Text.VoiceDeck.Body" />
     </LinearLayout>
 </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -26,21 +26,21 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="VOICE-FIRST CONTACTS"
+            android:text="@string/voice_first_contacts"
             style="@style/Text.VoiceDeck.Eyebrow" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_3"
-            android:text="Who would you like to connect with?"
+            android:text="@string/who_would_you_like_to_connect_with"
             style="@style/Text.VoiceDeck.Display" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_3"
-            android:text="Just say a name. We’ll find the contact for you."
+            android:text="@string/just_say_a_name_we_ll_find_the_contact_for_you"
             style="@style/Text.VoiceDeck.Body" />
 
         <LinearLayout
@@ -73,7 +73,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_4"
-                android:text="Ready when you are"
+                android:text="@string/ready_when_you_are"
                 style="@style/Text.VoiceDeck.SectionTitle" />
 
             <TextView
@@ -81,7 +81,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_1"
                 android:gravity="center"
-                android:text="Tap the button below, then say a contact’s name."
+                android:text="@string/tap_the_button_below_then_say_a_contact_s_name"
                 style="@style/Text.VoiceDeck.Body" />
 
             <Button android:backgroundTint="@null"
@@ -90,7 +90,7 @@
                 android:layout_height="@dimen/button_height"
                 android:layout_marginTop="@dimen/space_5"
                 android:drawableStart="@drawable/ic_mic_white"
-                android:text="Tap to speak"
+                android:text="@string/tap_to_speak"
                 style="@style/Widget.VoiceDeck.Button.Primary" />
 
             <Button android:backgroundTint="@null"
@@ -99,7 +99,7 @@
                 android:layout_height="@dimen/button_height_secondary"
                 android:layout_marginTop="@dimen/space_3"
                 android:drawableStart="@drawable/ic_keyboard"
-                android:text="Search by typing instead"
+                android:text="@string/search_by_typing_instead"
                 style="@style/Widget.VoiceDeck.Button.Outline" />
 
             <TextView
@@ -108,7 +108,7 @@
                 android:layout_marginTop="@dimen/space_4"
                 android:drawablePadding="@dimen/space_2"
                 android:gravity="center"
-                android:text="✓  Your contacts stay on this phone"
+                android:text="@string/your_contacts_stay_on_this_phone"
                 style="@style/Text.VoiceDeck.Caption" />
         </LinearLayout>
 
@@ -117,7 +117,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_6"
             android:gravity="center"
-            android:text="Your simple way to reach the people who matter."
+            android:text="@string/your_simple_way_to_reach_the_people_who_matter"
             style="@style/Text.VoiceDeck.Caption" />
     </LinearLayout>
 </ScrollView>

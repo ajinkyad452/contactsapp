@@ -21,12 +21,12 @@
         android:orientation="vertical"
         android:padding="@dimen/screen_padding">
 
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Manage vocabulary" style="@style/Text.VoiceDeck.Title" />
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="Fine-tune the phrases VoiceDeck recognises." style="@style/Text.VoiceDeck.Body" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/manage_vocabulary" style="@style/Text.VoiceDeck.Title" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="@string/fine_tune_the_phrases_voicedeck_recognises" style="@style/Text.VoiceDeck.Body" />
 
-        <TextView android:id="@+id/vocabulary_language" android:layout_width="match_parent" android:layout_height="72dp" android:layout_marginTop="@dimen/space_5" android:background="@drawable/bg_card" android:gravity="center_vertical" android:padding="@dimen/space_4" android:text="Current language&#10;English (United Kingdom)                                      ›" android:textColor="@color/vd_text" android:textStyle="bold" />
-        <EditText android:id="@+id/vocabulary_search" android:layout_width="match_parent" android:layout_height="@dimen/field_height" android:layout_marginTop="@dimen/space_4" android:hint="Search vocabulary" android:inputType="text" style="@style/Widget.VoiceDeck.Field" />
-        <Button android:backgroundTint="@null" android:id="@+id/action_add_vocabulary" android:layout_width="match_parent" android:layout_height="@dimen/button_height_secondary" android:layout_marginTop="@dimen/space_3" android:text="+  Add word or phrase" style="@style/Widget.VoiceDeck.Button.Outline" />
+        <TextView android:id="@+id/vocabulary_language" android:layout_width="match_parent" android:layout_height="72dp" android:layout_marginTop="@dimen/space_5" android:background="@drawable/bg_card" android:gravity="center_vertical" android:padding="@dimen/space_4" android:text="@string/language" android:textColor="@color/vd_text" android:textStyle="bold" />
+        <EditText android:id="@+id/vocabulary_search" android:layout_width="match_parent" android:layout_height="@dimen/field_height" android:layout_marginTop="@dimen/space_4" android:hint="@string/search_vocabulary" android:inputType="text" style="@style/Widget.VoiceDeck.Field" />
+        <Button android:backgroundTint="@null" android:id="@+id/action_add_vocabulary" android:layout_width="match_parent" android:layout_height="@dimen/button_height_secondary" android:layout_marginTop="@dimen/space_3" android:text="@string/add_word_or_phrase" style="@style/Widget.VoiceDeck.Button.Outline" />
 
         <LinearLayout
             android:id="@+id/vocabulary_entries"
@@ -37,7 +37,7 @@
             android:orientation="vertical"
             android:padding="0dp" />
 
-        <Button android:backgroundTint="@null" android:id="@+id/action_restore_vocabulary" android:layout_width="match_parent" android:layout_height="@dimen/button_height_secondary" android:layout_marginTop="@dimen/space_4" android:text="↻  Restore default vocabulary" style="@style/Widget.VoiceDeck.Button.Text" />
+        <Button android:backgroundTint="@null" android:id="@+id/action_restore_vocabulary" android:layout_width="match_parent" android:layout_height="@dimen/button_height_secondary" android:layout_marginTop="@dimen/space_4" android:text="@string/restore_default_vocabulary_2" style="@style/Widget.VoiceDeck.Button.Text" />
     </LinearLayout>
 </ScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>

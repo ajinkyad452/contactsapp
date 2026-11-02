@@ -19,21 +19,21 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="VOICE SEARCH"
+        android:text="@string/voice_search"
         style="@style/Text.VoiceDeck.Eyebrow" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_2"
-        android:text="I’m listening"
+        android:text="@string/i_m_listening"
         style="@style/Text.VoiceDeck.Title" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_2"
-        android:text="Say the name naturally, just as you know them."
+        android:text="@string/say_the_name_naturally_just_as_you_know_them"
         style="@style/Text.VoiceDeck.Body" />
 
     <FrameLayout
@@ -49,7 +49,7 @@
             android:layout_height="86dp"
             android:layout_gravity="center"
             android:background="@drawable/bg_primary_circle"
-            android:contentDescription="Listening"
+            android:contentDescription="@string/listening_2"
             android:padding="27dp"
             android:src="@drawable/ic_mic_white" />
     </FrameLayout>
@@ -83,14 +83,14 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="HEARD SO FAR"
+            android:text="@string/heard_so_far"
             style="@style/Text.VoiceDeck.Eyebrow" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_2"
-            android:id="@+id/listening_heard_text" android:text="Listening for a contact name…"
+            android:id="@+id/listening_heard_text" android:text="@string/listening_for_a_contact_name"
             android:textColor="@color/vd_text"
             android:textSize="28sp"
             android:textStyle="bold" />
@@ -99,7 +99,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_1"
-            android:text="Keep speaking, or tap stop when you’re done."
+            android:text="@string/keep_speaking_or_tap_stop_when_you_re_done"
             style="@style/Text.VoiceDeck.Caption" />
     </LinearLayout>
 
@@ -119,7 +119,7 @@
             android:layout_height="@dimen/button_height"
             android:layout_marginEnd="@dimen/space_2"
             android:layout_weight="1"
-            android:text="Cancel"
+            android:text="@string/cancel"
             style="@style/Widget.VoiceDeck.Button.Outline" />
 
         <Button android:backgroundTint="@null"
@@ -128,7 +128,7 @@
             android:layout_height="@dimen/button_height"
             android:layout_marginStart="@dimen/space_2"
             android:layout_weight="1"
-            android:text="Stop listening"
+            android:text="@string/stop_listening"
             style="@style/Widget.VoiceDeck.Button.Primary" />
     </LinearLayout>
 </LinearLayout>

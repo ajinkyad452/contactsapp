@@ -19,21 +19,21 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Add vocabulary"
+        android:text="@string/add_vocabulary"
         style="@style/Text.VoiceDeck.Title" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_2"
-        android:text="Add a word or phrase you want VoiceDeck to recognise."
+        android:text="@string/add_a_word_or_phrase_you_want_voicedeck_to_recognise"
         style="@style/Text.VoiceDeck.Body" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_6"
-        android:text="WORD OR PHRASE"
+        android:text="@string/word_or_phrase"
         style="@style/Text.VoiceDeck.Eyebrow" />
 
     <EditText
@@ -41,7 +41,7 @@
         android:layout_width="match_parent"
         android:layout_height="@dimen/field_height"
         android:layout_marginTop="@dimen/space_2"
-        android:hint="e.g. Reach out to"
+        android:hint="@string/e_g_reach_out_to"
         android:inputType="textCapSentences"
         style="@style/Widget.VoiceDeck.Field" />
 
@@ -49,7 +49,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_5"
-        android:text="CATEGORY"
+        android:text="@string/category"
         style="@style/Text.VoiceDeck.Eyebrow" />
 
     <Spinner
@@ -65,7 +65,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_5"
-        android:text="LANGUAGE"
+        android:text="@string/language_2"
         style="@style/Text.VoiceDeck.Eyebrow" />
 
     <TextView
@@ -75,7 +75,7 @@
         android:background="@drawable/bg_field"
         android:gravity="center_vertical"
         android:paddingHorizontal="@dimen/space_4"
-        android:text="English (United Kingdom)"
+        android:id="@+id/vocabulary_form_language" android:text="@string/language_english"
         android:textColor="@color/vd_text"
         android:textStyle="bold" />
 
@@ -95,7 +95,7 @@
             android:layout_height="@dimen/button_height"
             android:layout_marginEnd="@dimen/space_2"
             android:layout_weight="1"
-            android:text="Cancel"
+            android:text="@string/cancel"
             style="@style/Widget.VoiceDeck.Button.Outline" />
 
         <Button android:backgroundTint="@null"
@@ -104,7 +104,7 @@
             android:layout_height="@dimen/button_height"
             android:layout_marginStart="@dimen/space_2"
             android:layout_weight="1"
-            android:text="Save phrase"
+            android:text="@string/save_phrase"
             style="@style/Widget.VoiceDeck.Button.Primary" />
     </LinearLayout>
 </LinearLayout>

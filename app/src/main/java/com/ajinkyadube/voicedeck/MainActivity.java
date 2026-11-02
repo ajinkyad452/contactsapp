@@ -14,6 +14,8 @@ import android.content.ActivityNotFoundException;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.Context;
+import android.content.res.Configuration;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -107,6 +109,8 @@ public class MainActivity extends Activity {
     private String language = "en-IN";
     private final List<ContactItem> contacts = new ArrayList<>();
     private ContactNameMatcher contactNameMatcher;
+    private ManualContactSearch manualContactSearch;
+    private Runnable refreshManualSearch;
     private SpeechDictionaryRepository speechDictionaryRepository;
     private ContactAliasRepository contactAliasRepository;
     private boolean contactsLoaded;
@@ -133,6 +137,24 @@ public class MainActivity extends Activity {
     private int currentFigmaLayout = 0;
     private final ExecutorService imageExecutor = Executors.newFixedThreadPool(2);
 
+    @Override protected void attachBaseContext(Context base) {
+        // Match Activity.getPreferences() so existing language choices survive this update.
+        String className = getClass().getName();
+        String prefix = base.getPackageName() + ".";
+        String preferencesName = className.startsWith(prefix)
+                ? className.substring(prefix.length()) : className;
+        String selected = base.getSharedPreferences(preferencesName, MODE_PRIVATE)
+                .getString("language", "en-IN");
+        Configuration configuration = new Configuration(base.getResources().getConfiguration());
+        configuration.setLocale(Locale.forLanguageTag(selected));
+        super.attachBaseContext(base.createConfigurationContext(configuration));
+    }
+
+    @Override protected void onSaveInstanceState(Bundle state) {
+        state.putBoolean("restore_settings", currentFigmaLayout == R.layout.screen_settings);
+        super.onSaveInstanceState(state);
+    }
+
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
@@ -144,7 +166,13 @@ public class MainActivity extends Activity {
         language = getPreferences(MODE_PRIVATE).getString("language", "en-IN");
         buildBase();
         initializeSpeechDictionary();
-        showAnimatedSplash();
+        if (savedInstanceState != null && savedInstanceState.getBoolean("restore_settings")) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS)
+                    == PackageManager.PERMISSION_GRANTED) loadContacts();
+            showSettings();
+        } else {
+            showAnimatedSplash();
+        }
     }
 
     private Typeface manropeTypeface;
@@ -205,7 +233,7 @@ public class MainActivity extends Activity {
         headerBack = centeredText("‹", 24, false, COLOR_PRIMARY);
         headerBack.setGravity(Gravity.CENTER);
         headerBack.setVisibility(View.GONE);
-        headerBack.setContentDescription("Back");
+        headerBack.setContentDescription(getString(R.string.back));
         headerBack.setClickable(true);
         headerBack.setFocusable(true);
         headerBack.setOnClickListener(v -> onBackPressed());
@@ -223,12 +251,12 @@ public class MainActivity extends Activity {
         menu.setBackgroundColor(Color.TRANSPARENT);
         menu.setMinWidth(dp(48));
         menu.setMinHeight(dp(48));
-        menu.setContentDescription("More options");
+        menu.setContentDescription(getString(R.string.more_options));
         menu.setClickable(true);
         menu.setFocusable(true);
         menu.setOnClickListener(v -> {
             PopupMenu popup = new PopupMenu(MainActivity.this, menu);
-            popup.getMenu().add("Settings").setOnMenuItemClickListener(item -> {
+            popup.getMenu().add(getString(R.string.settings)).setOnMenuItemClickListener(item -> {
                 showSettings();
                 return true;
             });
@@ -255,7 +283,7 @@ public class MainActivity extends Activity {
         root.addView(statusText);
 
         aliasSetupLink = centeredText(
-                "Would you like to save this as a nickname for an existing contact?\nSelect a contact to link this nickname.",
+                getString(R.string.would_you_like_to_save_this_as_a_nickname_for_an_existing_contact),
                 15, true, COLOR_PRIMARY);
         aliasSetupLink.setPadding(dp(18), dp(4), dp(18), dp(14));
         aliasSetupLink.setVisibility(View.GONE);
@@ -264,7 +292,7 @@ public class MainActivity extends Activity {
         aliasSetupLink.setPaintFlags(aliasSetupLink.getPaintFlags()
                 | android.graphics.Paint.UNDERLINE_TEXT_FLAG);
         aliasSetupLink.setContentDescription(
-                "Save this unmatched name as a nickname for an existing contact");
+                getString(R.string.save_this_unmatched_name_as_a_nickname_for_an_existing_contact));
         aliasSetupLink.setOnClickListener(v -> {
             String alias = pendingAliasForSetup;
             if (alias != null && !alias.trim().isEmpty()) showAliasContactPicker(alias);
@@ -316,14 +344,14 @@ public class MainActivity extends Activity {
                 dp(82), dp(82), Gravity.CENTER));
         ImageView mic = new ImageView(this);
         mic.setImageResource(R.drawable.ic_mic);
-        mic.setContentDescription("VoiceDeck microphone logo");
+        mic.setContentDescription(getString(R.string.voicedeck_microphone_logo));
         micCircle.addView(mic, new FrameLayout.LayoutParams(
                 dp(36), dp(36), Gravity.CENTER));
 
         TextView title = centeredText("VoiceDeck", 30, true, COLOR_TEXT);
         setDmSans(title, 700);
         center.addView(title);
-        TextView subtitle = centeredText("Your contacts, just a voice away.",
+        TextView subtitle = centeredText(getString(R.string.your_contacts_just_a_voice_away),
                 14, false, COLOR_SECONDARY);
         LinearLayout.LayoutParams subParams = new LinearLayout.LayoutParams(-1, -2);
         subParams.topMargin = dp(8);
@@ -451,6 +479,7 @@ public class MainActivity extends Activity {
     }
 
     private View showFigmaScreen(int layoutId) {
+        refreshManualSearch = null;
         currentFigmaLayout = layoutId;
         if (statusText != null) statusText.setVisibility(layoutId == R.layout.screen_contact ? View.GONE : View.VISIBLE);
         content.removeAllViews();
@@ -519,7 +548,7 @@ public class MainActivity extends Activity {
                 ContactItem selected = getSelectedContact();
                 if (selected != null) placeDirectCall(selected);
             } else {
-                Toast.makeText(this, "Phone permission denied. Opening the dialler instead.", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, getString(R.string.phone_permission_denied_opening_the_dialler_instead), Toast.LENGTH_LONG).show();
                 ContactItem selected = getSelectedContact();
                 if (selected != null) openDialler(selected);
             }
@@ -530,10 +559,10 @@ public class MainActivity extends Activity {
                     == PackageManager.PERMISSION_GRANTED) {
                 // Permission granted; user must tap the microphone again to begin listening.
                 showListeningPrompt(false);
-                statusText.setText("Microphone ready. Tap the microphone when you want to search.");
+                statusText.setText(getString(R.string.microphone_ready_tap_the_microphone_when_you_want_to_search));
             } else {
                 showListeningPrompt(false);
-                statusText.setText("Microphone permission is off. Enable it in Android Settings to use voice search.");
+                statusText.setText(getString(R.string.microphone_permission_is_off_enable_it_in_android_settings_to_use));
                 showMicrophoneSettingsDialog();
             }
             return;
@@ -544,11 +573,11 @@ public class MainActivity extends Activity {
             if (contactsOk) {
                 loadContacts();
                 showListeningPrompt(false);
-                statusText.setText("Ready when you are. Tap the microphone to start voice search.");
+                statusText.setText(getString(R.string.ready_when_you_are_tap_the_microphone_to_start_voice_search));
             } else {
                 showListeningPrompt(false);
-                statusText.setText("Allow Contacts access to search your contacts. You can still use manual search when access is granted.");
-                Toast.makeText(this, "Allow Contacts access to use VoiceDeck.", Toast.LENGTH_LONG).show();
+                statusText.setText(getString(R.string.allow_contacts_access_to_search_your_contacts_you_can_still_use_m));
+                Toast.makeText(this, getString(R.string.allow_contacts_access_to_use_voicedeck), Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -558,6 +587,7 @@ public class MainActivity extends Activity {
         contactsLoaded = false;
         contactMatcherReady = false;
         contactNameMatcher = null;
+        manualContactSearch = null;
         final int generation = ++contactLoadGeneration;
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
             contactsLoaded = true;
@@ -589,7 +619,7 @@ public class MainActivity extends Activity {
                 }
             }
         } catch (Exception e) {
-            Toast.makeText(this, "Could not read contacts.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.could_not_read_contacts), Toast.LENGTH_LONG).show();
         }
         for (ContactItem item : contacts) loadExtraDetails(item);
         contactsLoaded = true;
@@ -634,11 +664,14 @@ public class MainActivity extends Activity {
                             return;
                         }
                         contactAliasesLoading = false;
-                        contactNameMatcher = new ContactNameMatcher(
-                                contacts, ContactAliasMatcherMap.fromAliases(aliases, currentContactIds));
+                        java.util.Map<Long, List<String>> aliasMap =
+                                ContactAliasMatcherMap.fromAliases(aliases, currentContactIds);
+                        contactNameMatcher = new ContactNameMatcher(contacts, aliasMap);
+                        manualContactSearch = new ManualContactSearch(contacts, aliasMap);
                         contactMatcherLanguage = requestedLanguage;
                         contactMatcherReady = true;
                         processPendingContactQuery();
+                        if (refreshManualSearch != null) refreshManualSearch.run();
                     }
 
                     @Override public void onError(Exception error) {
@@ -651,10 +684,14 @@ public class MainActivity extends Activity {
                         }
                         contactAliasesLoading = false;
                         // Keep ordinary contact-name search available if alias storage fails.
+                        Toast.makeText(MainActivity.this, getString(R.string.couldn_t_load_saved_aliases_please_try_again),
+                                Toast.LENGTH_LONG).show();
                         contactNameMatcher = new ContactNameMatcher(contacts, Collections.emptyMap());
+                        manualContactSearch = new ManualContactSearch(contacts, Collections.emptyMap());
                         contactMatcherLanguage = requestedLanguage;
                         contactMatcherReady = true;
                         processPendingContactQuery();
+                        if (refreshManualSearch != null) refreshManualSearch.run();
                     }
                 }
         );
@@ -686,14 +723,14 @@ public class MainActivity extends Activity {
     private void startListening() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             showListeningPrompt(false);
-            statusText.setText("VoiceDeck needs microphone permission to listen for a contact name.");
+            statusText.setText(getString(R.string.voicedeck_needs_microphone_permission_to_listen_for_a_contact_nam));
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.RECORD_AUDIO}, REQ_AUDIO);
             return;
         }
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
             showListeningPrompt(false);
-            statusText.setText("Speech recognition is unavailable on this device. Use manual search.");
+            statusText.setText(getString(R.string.speech_recognition_is_unavailable_on_this_device_use_manual_searc));
             return;
         }
         try {
@@ -704,12 +741,12 @@ public class MainActivity extends Activity {
                     showListeningPrompt(true);
                 }
                 @Override public void onBeginningOfSpeech() {
-                    if (heardText != null) heardText.setText("Listening…");
+                    if (heardText != null) heardText.setText(getString(R.string.listening));
                 }
                 @Override public void onRmsChanged(float rmsdB) {}
                 @Override public void onBufferReceived(byte[] buffer) {}
                 @Override public void onEndOfSpeech() {
-                    statusText.setText("Processing your request…");
+                    statusText.setText(getString(R.string.processing_your_request));
                 }
                 @Override public void onError(int error) {
                     finishListeningSession();
@@ -722,7 +759,7 @@ public class MainActivity extends Activity {
                     if (matches != null && !matches.isEmpty()) findContact(matches.get(0), true);
                     else {
                         showListeningPrompt(false);
-                        statusText.setText("No speech recognised. Try again.");
+                        statusText.setText(getString(R.string.no_speech_recognised_try_again));
                     }
 
                 }
@@ -743,23 +780,23 @@ public class MainActivity extends Activity {
             showListeningPrompt(true);
         } catch (Exception e) {
             showListeningPrompt(false);
-            statusText.setText("Could not start voice search. Try manual search.");
+            statusText.setText(getString(R.string.could_not_start_voice_search_try_manual_search));
         }
     }
 
     private void showMicrophoneSettingsDialog() {
         if (isFinishing() || isDestroyed()) return;
         new AlertDialog.Builder(this)
-                .setTitle("Microphone access")
-                .setMessage("To search by voice, allow microphone access for VoiceDeck. Also check that your phone's speech-recognition app (such as Google) is allowed to use the microphone. You can still use manual search.")
-                .setPositiveButton("Open VoiceDeck settings", (dialog, which) -> {
+                .setTitle(getString(R.string.microphone_access))
+                .setMessage(getString(R.string.to_search_by_voice_allow_microphone_access_for_voicedeck_also_che))
+                .setPositiveButton(getString(R.string.open_voicedeck_settings), (dialog, which) -> {
                     Intent settingsIntent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                             Uri.parse("package:" + getPackageName()));
                     try { startActivity(settingsIntent); }
-                    catch (Exception e) { Toast.makeText(this, "Open VoiceDeck in Android App settings.", Toast.LENGTH_LONG).show(); }
+                    catch (Exception e) { Toast.makeText(this, getString(R.string.open_voicedeck_in_android_app_settings), Toast.LENGTH_LONG).show(); }
                 })
-                .setNeutralButton("Try again", (dialog, which) -> startListening())
-                .setNegativeButton("Cancel", null)
+                .setNeutralButton(getString(R.string.try_again), (dialog, which) -> startListening())
+                .setNegativeButton(getString(R.string.cancel), null)
                 .show();
     }
 
@@ -775,30 +812,30 @@ public class MainActivity extends Activity {
     private String speechErrorMessage(int error) {
         switch (error) {
             case SpeechRecognizer.ERROR_AUDIO:
-                return "Microphone audio problem. Check that the microphone is working and try again.";
+                return getString(R.string.microphone_audio_problem_check_that_the_microphone_is_working_and);
             case SpeechRecognizer.ERROR_CLIENT:
-                return "Voice search was interrupted by Android. Tap Start voice search to try again.";
+                return getString(R.string.voice_search_was_interrupted_by_android_tap_start_voice_search_to);
             case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
                 runOnUiThread(() -> showMicrophoneSettingsDialog());
-                return "Android's speech service reports that microphone access is blocked. Check VoiceDeck and your phone's speech-recognition app permissions.";
+                return getString(R.string.android_s_speech_service_reports_that_microphone_access_is_blocke);
             case SpeechRecognizer.ERROR_NETWORK:
-                return "Speech service network error. Check your internet connection and try again.";
+                return getString(R.string.speech_service_network_error_check_your_internet_connection_and_t);
             case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
-                return "Speech service timed out. Check your internet connection and try again.";
+                return getString(R.string.speech_service_timed_out_check_your_internet_connection_and_try_a);
             case SpeechRecognizer.ERROR_NO_MATCH:
-                return "I couldn't identify that name. Please speak clearly or search manually.";
+                return getString(R.string.i_couldn_t_identify_that_name_please_speak_clearly_or_search_manu);
             case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
-                return "Voice recognition is busy. Wait a moment, then try again.";
+                return getString(R.string.voice_recognition_is_busy_wait_a_moment_then_try_again);
             case SpeechRecognizer.ERROR_SERVER:
-                return "The speech service had a problem. Please try again in a moment.";
+                return getString(R.string.the_speech_service_had_a_problem_please_try_again_in_a_moment);
             case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
-                return "I didn't hear anything. Tap Start voice search and say a contact name.";
+                return getString(R.string.i_didn_t_hear_anything_tap_start_voice_search_and_say_a_contact_n);
             case SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED:
-                return "This speech service does not support the selected language. Choose another language in Settings.";
+                return getString(R.string.this_speech_service_does_not_support_the_selected_language_choose);
             case SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE:
-                return "The selected language is not available yet. Check your speech recognition language settings or choose another language.";
+                return getString(R.string.the_selected_language_is_not_available_yet_check_your_speech_reco);
             default:
-                return "Voice search stopped (error " + error + "). Please try again or search manually.";
+                return getString(R.string.voice_error_unknown, error);
         }
     }
 
@@ -894,7 +931,7 @@ public class MainActivity extends Activity {
             // Hold only the latest query and resume it when loading completes.
             pendingContactQuery = spoken;
             pendingAliasCreationAllowed = allowAliasCreation;
-            statusText.setText("Preparing local voice dictionary…");
+            statusText.setText(getString(R.string.preparing_local_voice_dictionary));
             return;
         }
         findContactNow(spoken, allowAliasCreation);
@@ -906,7 +943,7 @@ public class MainActivity extends Activity {
         if (!contactMatcherReady || !language.equals(contactMatcherLanguage)) {
             pendingContactQuery = spoken;
             pendingAliasCreationAllowed = allowAliasCreation;
-            statusText.setText("Loading saved contact names…");
+            statusText.setText(getString(R.string.loading_saved_contact_names));
             loadContactAliases(contactLoadGeneration);
             return;
         }
@@ -916,8 +953,7 @@ public class MainActivity extends Activity {
         if (result.getStatus() == ContactNameMatcher.Status.NO_MATCH) {
             String alias = aliasFromSpokenText(spoken);
             showListeningPrompt(false);
-            statusText.setText("Contact not found\nWe couldn't find a matching contact for “"
-                    + spoken + "”.");
+            statusText.setText(getString(R.string.contact_not_found_query, spoken));
             if (allowAliasCreation && !alias.isEmpty()) {
                 pendingAliasForSetup = alias;
                 aliasSetupLink.setVisibility(View.VISIBLE);
@@ -955,14 +991,13 @@ public class MainActivity extends Activity {
     private void showAliasContactPicker(String alias) {
         if (contacts.isEmpty()) {
             showListeningPrompt(false);
-            statusText.setText("No contacts with phone numbers are available to link to this name.");
+            statusText.setText(getString(R.string.no_contacts_with_phone_numbers_are_available_to_link_to_this_name));
             return;
         }
 
         LinearLayout panel = dialogPanel();
-        panel.addView(dialogTitle("Who do you mean?"));
-        TextView hint = text("Choose the contact you want VoiceDeck to remember as “"
-                + alias + "”.", 15, false);
+        panel.addView(dialogTitle(getString(R.string.who_do_you_mean)));
+        TextView hint = text(getString(R.string.choose_contact_for_alias, alias), 15, false);
         hint.setTextColor(COLOR_SECONDARY);
         hint.setPadding(0, 0, 0, dp(10));
         panel.addView(hint);
@@ -971,7 +1006,7 @@ public class MainActivity extends Activity {
         search.setTypeface(getManrope());
         search.setSingleLine(true);
         search.setTextSize(17);
-        search.setHint("Search contacts");
+        search.setHint(getString(R.string.search_contacts));
         search.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
         search.setPadding(dp(14), dp(10), dp(14), dp(10));
         search.setBackground(roundedBackground(COLOR_BACKGROUND, COLOR_BORDER, 14));
@@ -1001,7 +1036,7 @@ public class MainActivity extends Activity {
         panel.addView(list, listParams);
 
         AlertDialog dialog = new AlertDialog.Builder(this).setView(panel)
-                .setNegativeButton("Cancel", null).create();
+                .setNegativeButton(getString(R.string.cancel), null).create();
         list.setOnItemClickListener((parent, view, position, id) -> {
             ContactItem selected = visibleContacts.get(position);
             dialog.dismiss();
@@ -1037,24 +1072,23 @@ public class MainActivity extends Activity {
     private void confirmRememberAlias(String alias, ContactItem contact) {
         if (contact == null || alias == null || alias.trim().isEmpty()) return;
         new AlertDialog.Builder(this)
-                .setTitle("Remember this name?")
-                .setMessage("Should I remember “" + alias + "” as “"
-                        + contact.name + "”?")
-                .setPositiveButton("Yes, remember", (dialog, which) ->
+                .setTitle(getString(R.string.remember_this_name))
+                .setMessage(getString(R.string.confirm_remember_alias, alias, contact.name))
+                .setPositiveButton(getString(R.string.yes_remember), (dialog, which) ->
                         saveContactAlias(alias, contact))
-                .setNegativeButton("No", null)
+                .setNegativeButton(getString(R.string.no), null)
                 .show();
     }
 
     private void saveContactAlias(String alias, ContactItem contact) {
         if (contactAliasRepository == null) {
-            Toast.makeText(this, "Alias storage is not ready. Please try again.",
+            Toast.makeText(this, getString(R.string.alias_storage_is_not_ready_please_try_again),
                     Toast.LENGTH_LONG).show();
             return;
         }
         String normalized = SpeechCommandFilter.normalizeTerm(alias);
         if (normalized.isEmpty()) {
-            Toast.makeText(this, "That spoken name cannot be saved.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.that_spoken_name_cannot_be_saved), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -1066,23 +1100,22 @@ public class MainActivity extends Activity {
                         if (isFinishing() || isDestroyed()) return;
                         if (id == null || id <= 0) {
                             Toast.makeText(MainActivity.this,
-                                    "I already remember that name for this contact.",
+                                    getString(R.string.i_already_remember_that_name_for_this_contact),
                                     Toast.LENGTH_LONG).show();
                             return;
                         }
                         // Rebuild the in-memory matcher from the actual Room database.
                         loadContactAliases(contactLoadGeneration);
                         showListeningPrompt(false);
-                        statusText.setText("I'll remember “" + alias + "” as “"
-                                + contact.name + "”.");
-                        Toast.makeText(MainActivity.this, "I'll remember that!",
+                        statusText.setText(getString(R.string.remembered_alias, alias, contact.name));
+                        Toast.makeText(MainActivity.this, getString(R.string.i_ll_remember_that),
                                 Toast.LENGTH_SHORT).show();
                     }
 
                     @Override public void onError(Exception error) {
                         if (isFinishing() || isDestroyed()) return;
                         Toast.makeText(MainActivity.this,
-                                "Couldn't save that name. Please try again.",
+                                getString(R.string.couldn_t_save_that_name_please_try_again),
                                 Toast.LENGTH_LONG).show();
                     }
                 });
@@ -1099,7 +1132,7 @@ public class MainActivity extends Activity {
                 ContactItem match = matches.get(i);
                 TextView row = text(match.name + "\n" +
                         (match.phone == null || match.phone.isEmpty()
-                                ? "No mobile number saved" : match.phone) + "   ›", 16, true);
+                                ? getString(R.string.no_mobile_number_saved) : match.phone) + "   ›", 16, true);
                 row.setPadding(dp(14), dp(16), dp(14), dp(16));
                 row.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 14));
                 LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
@@ -1118,6 +1151,7 @@ public class MainActivity extends Activity {
     }
 
     private void showManualSearch() {
+        if (!contactsLoaded) loadContacts();
         setSecondaryHeader(true);
         View screen = showFigmaScreen(R.layout.screen_search);
         EditText input = screen.findViewById(R.id.search_input);
@@ -1128,58 +1162,68 @@ public class MainActivity extends Activity {
         if (empty != null) empty.setVisibility(View.VISIBLE);
         if (noResults != null) noResults.setVisibility(View.GONE);
         if (input == null || results == null) return;
+        refreshManualSearch = () -> {
+            String q = input.getText().toString().trim();
+            statusText.setText("");
+            results.removeAllViews();
+            if (q.isEmpty()) {
+                results.setVisibility(View.GONE);
+                if (empty != null) empty.setVisibility(View.VISIBLE);
+                if (noResults != null) noResults.setVisibility(View.GONE);
+                return;
+            }
+            if (empty != null) empty.setVisibility(View.GONE);
+            if (!contactMatcherReady || !language.equals(contactMatcherLanguage)) {
+                results.setVisibility(View.GONE);
+                if (noResults != null) noResults.setVisibility(View.GONE);
+                statusText.setText(getString(R.string.loading_saved_contact_names));
+                loadContactAliases(contactLoadGeneration);
+                return;
+            }
+            statusText.setText("");
+            List<ContactItem> matches = manualContactSearch.search(q);
+            int found = 0;
+            for (ContactItem contact : matches) {
+                LinearLayout row = new LinearLayout(MainActivity.this);
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                row.setPadding(dp(12), dp(11), dp(12), dp(11));
+                TextView avatar = text(initials(contact.name), 13, true);
+                avatar.setGravity(Gravity.CENTER);
+                avatar.setTextColor(COLOR_PRIMARY);
+                avatar.setBackground(roundedBackground(0xFFE5EBDD, 0xFFE5EBDD, 100));
+                row.addView(avatar, new LinearLayout.LayoutParams(dp(42), dp(42)));
+                LinearLayout labels = new LinearLayout(MainActivity.this);
+                labels.setOrientation(LinearLayout.VERTICAL);
+                labels.setPadding(dp(12), 0, 0, 0);
+                labels.addView(text(contact.name, 15, true));
+                TextView phoneLabel = text(contact.phone == null || contact.phone.isEmpty()
+                        ? getString(R.string.no_phone_number) : contact.phone, 12, false);
+                phoneLabel.setTextColor(COLOR_SECONDARY);
+                labels.addView(phoneLabel);
+                row.addView(labels, new LinearLayout.LayoutParams(0, -2, 1));
+                row.addView(iconAction("›", COLOR_PRIMARY, getString(R.string.open_contact)),
+                        new LinearLayout.LayoutParams(dp(30), dp(44)));
+                results.addView(row);
+                addThinDivider(results);
+                row.setOnClickListener(v -> {
+                    currentMatches = new ArrayList<>();
+                    currentMatches.add(contact);
+                    currentIndex = 0;
+                    showCard(false);
+                });
+                found++;
+            }
+            results.setVisibility(found > 0 ? View.VISIBLE : View.GONE);
+            if (noResults != null) noResults.setVisibility(found == 0 ? View.VISIBLE : View.GONE);
+        };
         input.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                String q = s.toString().trim().toLowerCase(Locale.ROOT);
-                results.removeAllViews();
-                if (q.isEmpty()) {
-                    results.setVisibility(View.GONE);
-                    if (empty != null) empty.setVisibility(View.VISIBLE);
-                    if (noResults != null) noResults.setVisibility(View.GONE);
-                    return;
-                }
-                if (empty != null) empty.setVisibility(View.GONE);
-                int found = 0;
-                for (ContactItem contact : contacts) {
-                    String name = safe(contact.name).toLowerCase(Locale.ROOT);
-                    String phone = safe(contact.phone).toLowerCase(Locale.ROOT);
-                    if (!name.contains(q) && !phone.contains(q)) continue;
-                    LinearLayout row = new LinearLayout(MainActivity.this);
-                    row.setGravity(Gravity.CENTER_VERTICAL);
-                    row.setPadding(dp(12), dp(11), dp(12), dp(11));
-                    TextView avatar = text(initials(contact.name), 13, true);
-                    avatar.setGravity(Gravity.CENTER);
-                    avatar.setTextColor(COLOR_PRIMARY);
-                    avatar.setBackground(roundedBackground(0xFFE5EBDD, 0xFFE5EBDD, 100));
-                    row.addView(avatar, new LinearLayout.LayoutParams(dp(42), dp(42)));
-                    LinearLayout labels = new LinearLayout(MainActivity.this);
-                    labels.setOrientation(LinearLayout.VERTICAL);
-                    labels.setPadding(dp(12), 0, 0, 0);
-                    labels.addView(text(contact.name, 15, true));
-                    TextView phoneLabel = text(contact.phone == null || contact.phone.isEmpty()
-                            ? "No phone number" : contact.phone, 12, false);
-                    phoneLabel.setTextColor(COLOR_SECONDARY);
-                    labels.addView(phoneLabel);
-                    row.addView(labels, new LinearLayout.LayoutParams(0, -2, 1));
-                    row.addView(iconAction("›", COLOR_PRIMARY, "Open contact"),
-                            new LinearLayout.LayoutParams(dp(30), dp(44)));
-                    results.addView(row);
-                    addThinDivider(results);
-                    row.setOnClickListener(v -> {
-                        currentMatches = new ArrayList<>();
-                        currentMatches.add(contact);
-                        currentIndex = 0;
-                        showCard(false);
-                    });
-                    found++;
-                }
-                results.setVisibility(found > 0 ? View.VISIBLE : View.GONE);
-                if (noResults != null) noResults.setVisibility(found == 0 ? View.VISIBLE : View.GONE);
+                if (refreshManualSearch != null) refreshManualSearch.run();
             }
             @Override public void afterTextChanged(Editable s) { }
         });
-        statusText.setText("");
+        refreshManualSearch.run();
     }
 
     private void showContactPhoto(FrameLayout frame, Bitmap bitmap) {
@@ -1337,18 +1381,18 @@ public class MainActivity extends Activity {
         setTextIfPresent(screen, R.id.contact_name, item.name);
         setTextIfPresent(screen, R.id.contact_back_name, item.name);
         setTextIfPresent(screen, R.id.contact_phone,
-                item.phone == null || item.phone.isEmpty() ? "No mobile number saved" : item.phone);
+                item.phone == null || item.phone.isEmpty() ? getString(R.string.no_mobile_number_saved) : item.phone);
         LinearLayout contactRows = screen.findViewById(R.id.contact_detail_rows);
         if (contactRows != null) {
-            addContactDetailRow(contactRows, R.drawable.ic_contact_mail, "Email", item.email);
-            addContactDetailRow(contactRows, R.drawable.ic_contact_building, "Company", item.company);
-            addContactDetailRow(contactRows, R.drawable.ic_contact_calendar, "Birthday", item.birthday);
-            addContactDetailRow(contactRows, R.drawable.ic_contact_pin, "Address", item.address);
+            addContactDetailRow(contactRows, R.drawable.ic_contact_mail, getString(R.string.email), item.email);
+            addContactDetailRow(contactRows, R.drawable.ic_contact_building, getString(R.string.company), item.company);
+            addContactDetailRow(contactRows, R.drawable.ic_contact_calendar, getString(R.string.birthday), item.birthday);
+            addContactDetailRow(contactRows, R.drawable.ic_contact_pin, getString(R.string.address), item.address);
             View empty = screen.findViewById(R.id.contact_no_details);
             if (empty != null) empty.setVisibility(contactRows.getChildCount() == 0 ? View.VISIBLE : View.GONE);
         }
         setTextIfPresent(screen, R.id.contact_count,
-                (currentIndex + 1) + " of " + currentMatches.size());
+                getString(R.string.contact_position, currentIndex + 1, currentMatches.size()));
 
         ImageView photo = screen.findViewById(R.id.contact_photo);
         if (photo != null) {
@@ -1388,7 +1432,7 @@ public class MainActivity extends Activity {
                         ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, item.id));
                 startActivity(intent);
             } catch (Exception ex) {
-                Toast.makeText(this, "Unable to open this contact.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, getString(R.string.unable_to_open_this_contact), Toast.LENGTH_SHORT).show();
             }
         });
         boolean canBrowse = currentMatches.size() > 1;
@@ -1414,8 +1458,8 @@ public class MainActivity extends Activity {
         }
         if (mic != null) mic.setOnClickListener(v -> returnToVoiceSearch());
         statusText.setText(back
-                ? "Contact details. Return to the card or record another contact."
-                : "Contact found. Choose Call or WhatsApp.");
+                ? getString(R.string.contact_details_return_to_the_card_or_record_another_contact)
+                : getString(R.string.contact_found_choose_call_or_whatsapp));
     }
 
     private String getInitials(String name) {
@@ -1431,7 +1475,7 @@ public class MainActivity extends Activity {
         currentIndex = 0;
         showingBack = false;
         showListeningPrompt(false);
-        statusText.setText("Ready to find another contact.");
+        statusText.setText(getString(R.string.ready_to_find_another_contact));
     }
 
     private Button actionButton(String label) {
@@ -1465,7 +1509,7 @@ public class MainActivity extends Activity {
         TextView title = text(label, 12, true);
         title.setTextColor(COLOR_SECONDARY);
         labels.addView(title);
-        TextView detail = text(value == null || value.trim().isEmpty() ? "Not saved" : value, 16, false);
+        TextView detail = text(value == null || value.trim().isEmpty() ? getString(R.string.not_saved) : value, 16, false);
         detail.setTextColor(value == null || value.trim().isEmpty() ? COLOR_SECONDARY : COLOR_TEXT);
         detail.setPadding(0, dp(3), 0, 0);
         labels.addView(detail);
@@ -1479,7 +1523,7 @@ public class MainActivity extends Activity {
 
     private void callContact(ContactItem item) {
         if (item.phone.isEmpty()) {
-            Toast.makeText(this, "No phone number saved for this contact.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.no_phone_number_saved_for_this_contact), Toast.LENGTH_LONG).show();
             return;
         }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE)
@@ -1498,7 +1542,7 @@ public class MainActivity extends Activity {
         try {
             startActivity(intent);
         } catch (SecurityException | ActivityNotFoundException e) {
-            Toast.makeText(this, "Direct calling is unavailable. Opening the dialler.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.direct_calling_is_unavailable_opening_the_dialler), Toast.LENGTH_LONG).show();
             openDialler(item);
         }
     }
@@ -1509,13 +1553,13 @@ public class MainActivity extends Activity {
         try {
             startActivity(intent);
         } catch (ActivityNotFoundException e) {
-            Toast.makeText(this, "No dialler app found.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.no_dialler_app_found), Toast.LENGTH_LONG).show();
         }
     }
 
     private void openWhatsApp(ContactItem item) {
         if (item.phone.isEmpty()) {
-            Toast.makeText(this, "No phone number saved for this contact.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.no_phone_number_saved_for_this_contact), Toast.LENGTH_LONG).show();
             return;
         }
         String number = item.phone.replaceAll("[^0-9]", "");
@@ -1528,7 +1572,7 @@ public class MainActivity extends Activity {
         catch (Exception e) {
             intent.setPackage(null);
             try { startActivity(intent); }
-            catch (Exception ex) { Toast.makeText(this, "WhatsApp is not available.", Toast.LENGTH_LONG).show(); }
+            catch (Exception ex) { Toast.makeText(this, getString(R.string.whatsapp_is_not_available), Toast.LENGTH_LONG).show(); }
         }
     }
 
@@ -1626,13 +1670,22 @@ public class MainActivity extends Activity {
                     Uri.parse("package:" + getPackageName()));
             startActivity(intent);
         } catch (Exception ignored) {
-            Toast.makeText(this, "Open Android Settings to manage app permissions.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.open_android_settings_to_manage_app_permissions), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private String appVersionName() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (PackageManager.NameNotFoundException error) {
+            return "";
         }
     }
 
     private void showLegalDialog() {
         setSecondaryHeader(true);
         View screen = showFigmaScreen(R.layout.screen_legal);
+        setTextIfPresent(screen, R.id.legal_version, getString(R.string.app_version, appVersionName()));
         View privacy = screen.findViewById(R.id.legal_privacy);
         View terms = screen.findViewById(R.id.legal_terms);
         if (privacy != null) privacy.setOnClickListener(v ->
@@ -1657,13 +1710,13 @@ public class MainActivity extends Activity {
         if (add != null) add.setOnClickListener(v -> showAliasEditor(null));
         if (contactAliasRepository == null) {
             initializeSpeechDictionary();
-            if (empty != null) empty.setText("Preparing alias storage. Please reopen this screen in a moment.");
+            if (empty != null) empty.setText(getString(R.string.preparing_alias_storage_please_reopen_this_screen_in_a_moment));
             return;
         }
         contactAliasRepository.getAllAliases(new ContactAliasRepository.ResultCallback<List<ContactAlias>>() {
             @Override public void onSuccess(List<ContactAlias> aliases) {
                 if (isFinishing() || isDestroyed() || !showingAliasManager || list == null || empty == null) return;
-                if (count != null) count.setText(aliases.size() + " SAVED ALIASES");
+                if (count != null) count.setText(getString(R.string.saved_alias_count, aliases.size()));
                 Runnable render = () -> renderAliasRows(list, empty, aliases,
                         search == null || search.getText() == null ? "" : search.getText().toString());
                 if (search != null) search.addTextChangedListener(new TextWatcher() {
@@ -1675,7 +1728,7 @@ public class MainActivity extends Activity {
             }
             @Override public void onError(Exception error) {
                 if (!isFinishing() && !isDestroyed() && showingAliasManager && empty != null)
-                    empty.setText("Couldn't load saved aliases. Please try again.");
+                    empty.setText(getString(R.string.couldn_t_load_saved_aliases_please_try_again));
             }
         });
     }
@@ -1688,7 +1741,7 @@ public class MainActivity extends Activity {
         for (ContactAlias alias : aliases) {
             ContactItem linked = null;
             for (ContactItem item : contacts) if (item.id == alias.contactId) { linked = item; break; }
-            String contactName = linked == null ? "Unknown contact" : safe(linked.name);
+            String contactName = linked == null ? getString(R.string.unknown_contact) : safe(linked.name);
             if (!query.isEmpty() && !alias.alias.toLowerCase(Locale.ROOT).contains(query)
                     && !contactName.toLowerCase(Locale.ROOT).contains(query)) continue;
             if (visible++ > 0) addThinDivider(list);
@@ -1710,10 +1763,10 @@ public class MainActivity extends Activity {
             names.addView(aliasName);
             names.addView(linkedName);
             row.addView(names, new LinearLayout.LayoutParams(0, -2, 1));
-            TextView edit = iconAction("✎", COLOR_PRIMARY, "Edit alias");
+            TextView edit = iconAction("✎", COLOR_PRIMARY, getString(R.string.edit_alias));
             row.addView(edit, new LinearLayout.LayoutParams(dp(38), dp(44)));
             edit.setOnClickListener(v -> showAliasEditor(alias));
-            TextView delete = iconAction("♜", 0xFF9D5349, "Delete alias");
+            TextView delete = iconAction("♜", 0xFF9D5349, getString(R.string.delete_alias));
             delete.setText("✕");
             row.addView(delete, new LinearLayout.LayoutParams(dp(38), dp(44)));
             delete.setOnClickListener(v -> confirmDeleteAlias(alias));
@@ -1721,7 +1774,7 @@ public class MainActivity extends Activity {
         }
         empty.setVisibility(visible == 0 ? View.VISIBLE : View.GONE);
         if (visible == 0) {
-            empty.setText(query.isEmpty() ? "No aliases saved yet." : "No matching aliases.");
+            empty.setText(query.isEmpty() ? getString(R.string.no_aliases_saved_yet) : getString(R.string.no_matching_aliases));
             list.addView(empty);
         }
     }
@@ -1762,7 +1815,7 @@ public class MainActivity extends Activity {
 
     private void showAliasEditor(ContactAlias existing) {
         if (contacts.isEmpty()) {
-            Toast.makeText(this, "No contacts with phone numbers are available.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.no_contacts_with_phone_numbers_are_available), Toast.LENGTH_LONG).show();
             return;
         }
         final ContactItem[] selected = new ContactItem[1];
@@ -1775,7 +1828,7 @@ public class MainActivity extends Activity {
         Button save = screen.findViewById(R.id.action_save_alias);
         Button cancel = screen.findViewById(R.id.action_cancel_alias);
         nickname.setText(existing == null ? "" : existing.alias);
-        contact.setText(selected[0] == null ? "Select contact  ›" : selected[0].name + "  ›");
+        contact.setText(selected[0] == null ? getString(R.string.select_contact) : selected[0].name + "  ›");
         final String[] selectedLanguage = {existing == null ? language : existing.languageTag};
         String[] languageTags = {"en-IN", "hi-IN", "mr-IN"};
         String[] languageLabels = {"English", "हिन्दी", "मराठी"};
@@ -1783,36 +1836,36 @@ public class MainActivity extends Activity {
             languageSelector.setText(languageLabels[i] + "  ›");
         contact.setOnClickListener(v -> showAliasManagementContactPicker(selected, contact));
         languageSelector.setOnClickListener(v -> new AlertDialog.Builder(this)
-                .setTitle("Spoken language").setSingleChoiceItems(languageLabels,
+                .setTitle(getString(R.string.spoken_language)).setSingleChoiceItems(languageLabels,
                         java.util.Arrays.asList(languageTags).indexOf(selectedLanguage[0]),
                         (dialog, which) -> { selectedLanguage[0] = languageTags[which];
                             languageSelector.setText(languageLabels[which] + "  ›"); dialog.dismiss(); })
-                .setNegativeButton("Cancel", null).show());
+                .setNegativeButton(getString(R.string.cancel), null).show());
         cancel.setOnClickListener(v -> showAliasManager());
-        save.setText(existing == null ? "Add alias" : "Save alias");
+        save.setText(existing == null ? getString(R.string.add_alias) : getString(R.string.save_alias));
         save.setOnClickListener(v -> {
             String aliasText = nickname.getText().toString().trim();
             String normalized = SpeechCommandFilter.normalizeTerm(aliasText);
-            if (selected[0] == null) { Toast.makeText(this, "Select a contact.", Toast.LENGTH_SHORT).show(); return; }
+            if (selected[0] == null) { Toast.makeText(this, getString(R.string.select_a_contact), Toast.LENGTH_SHORT).show(); return; }
             if (normalized.isEmpty() || aliasText.length() > 80 || normalized.split("\\s+").length > 8) {
-                nickname.setError("Use up to 80 characters and 8 words."); return;
+                nickname.setError(getString(R.string.use_up_to_80_characters_and_8_words)); return;
             }
             ContactAlias entry = new ContactAlias(selected[0].id, aliasText, normalized,
                     selectedLanguage[0], existing == null ? System.currentTimeMillis() : existing.createdAt);
             if (existing != null) entry.id = existing.id;
             if (existing == null) contactAliasRepository.insert(entry, new ContactAliasRepository.ResultCallback<Long>() {
                 @Override public void onSuccess(Long id) {
-                    if (id == null || id <= 0) { Toast.makeText(MainActivity.this, "Alias already linked to this contact.", Toast.LENGTH_LONG).show(); return; }
-                    onAliasManagementSaved("Alias added.");
+                    if (id == null || id <= 0) { Toast.makeText(MainActivity.this, getString(R.string.alias_already_linked_to_this_contact), Toast.LENGTH_LONG).show(); return; }
+                    onAliasManagementSaved(getString(R.string.alias_added));
                 }
-                @Override public void onError(Exception error) { Toast.makeText(MainActivity.this, "Couldn't add alias.", Toast.LENGTH_LONG).show(); }
+                @Override public void onError(Exception error) { Toast.makeText(MainActivity.this, getString(R.string.couldn_t_add_alias), Toast.LENGTH_LONG).show(); }
             });
             else contactAliasRepository.update(entry, new ContactAliasRepository.ResultCallback<Integer>() {
                 @Override public void onSuccess(Integer count) {
-                    if (count == null || count <= 0) { Toast.makeText(MainActivity.this, "Alias already linked to this contact.", Toast.LENGTH_LONG).show(); return; }
-                    onAliasManagementSaved("Alias updated.");
+                    if (count == null || count <= 0) { Toast.makeText(MainActivity.this, getString(R.string.alias_already_linked_to_this_contact), Toast.LENGTH_LONG).show(); return; }
+                    onAliasManagementSaved(getString(R.string.alias_updated));
                 }
-                @Override public void onError(Exception error) { Toast.makeText(MainActivity.this, "Couldn't update alias.", Toast.LENGTH_LONG).show(); }
+                @Override public void onError(Exception error) { Toast.makeText(MainActivity.this, getString(R.string.couldn_t_update_alias), Toast.LENGTH_LONG).show(); }
             });
         });
     }
@@ -1829,15 +1882,15 @@ public class MainActivity extends Activity {
             }
         };
         LinearLayout panel = dialogPanel();
-        panel.addView(dialogTitle("Select contact"));
+        panel.addView(dialogTitle(getString(R.string.select_contact_2)));
         EditText search = new EditText(this);
         search.setTypeface(getManrope());
-        search.setSingleLine(true); search.setHint("Search contacts"); search.setTextSize(16);
+        search.setSingleLine(true); search.setHint(getString(R.string.search_contacts)); search.setTextSize(16);
         panel.addView(search, new LinearLayout.LayoutParams(-1, dp(52)));
         ListView list = new ListView(this);
         list.setAdapter(adapter);
         panel.addView(list, new LinearLayout.LayoutParams(-1, dp(360)));
-        AlertDialog dialog = new AlertDialog.Builder(this).setView(panel).setNegativeButton("Cancel", null).create();
+        AlertDialog dialog = new AlertDialog.Builder(this).setView(panel).setNegativeButton(getString(R.string.cancel), null).create();
         list.setOnItemClickListener((parent, view, position, id) -> {
             selected[0] = visible.get(position); target.setText(selected[0].name); dialog.dismiss();
         });
@@ -1856,16 +1909,16 @@ public class MainActivity extends Activity {
     }
 
     private void confirmDeleteAlias(ContactAlias alias) {
-        new AlertDialog.Builder(this).setTitle("Delete alias?")
-                .setMessage("Remove “" + alias.alias + "” from VoiceDeck? The Android contact will not be affected.")
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("Delete", (dialog, which) -> contactAliasRepository.deleteById(alias.id,
+        new AlertDialog.Builder(this).setTitle(getString(R.string.delete_alias_2))
+                .setMessage(getString(R.string.confirm_delete_alias, alias.alias))
+                .setNegativeButton(getString(R.string.cancel), null)
+                .setPositiveButton(getString(R.string.delete), (dialog, which) -> contactAliasRepository.deleteById(alias.id,
                         new ContactAliasRepository.ResultCallback<Integer>() {
                             @Override public void onSuccess(Integer deleted) {
-                                onAliasManagementSaved(deleted != null && deleted > 0 ? "Alias deleted." : "Alias was not found.");
+                                onAliasManagementSaved(deleted != null && deleted > 0 ? getString(R.string.alias_deleted) : getString(R.string.alias_was_not_found));
                             }
                             @Override public void onError(Exception error) {
-                                Toast.makeText(MainActivity.this, "Couldn't delete this alias.", Toast.LENGTH_LONG).show();
+                                Toast.makeText(MainActivity.this, getString(R.string.couldn_t_delete_this_alias), Toast.LENGTH_LONG).show();
                             }
                         })).show();
     }
@@ -1889,7 +1942,7 @@ public class MainActivity extends Activity {
         Button restore = screen.findViewById(R.id.action_restore_vocabulary);
         LinearLayout list = screen.findViewById(R.id.vocabulary_entries);
         if (languageRow != null) {
-            languageRow.setText("Current language\n" + dictionaryLanguageName(dictionaryManagerLanguage) + "   ›");
+            languageRow.setText(getString(R.string.current_dictionary_language, dictionaryLanguageName(dictionaryManagerLanguage)));
             languageRow.setOnClickListener(v -> showDictionaryLanguageChooser());
         }
         if (add != null) add.setOnClickListener(v -> showAddDictionaryEntryDialog());
@@ -1914,7 +1967,7 @@ public class MainActivity extends Activity {
                                         || entry.category.toLowerCase(Locale.ROOT).contains(q)) filtered.add(entry);
                             }
                             if (filtered.isEmpty()) {
-                                TextView empty = text("No matching vocabulary entries.", 14, false);
+                                TextView empty = text(getString(R.string.no_matching_vocabulary_entries), 14, false);
                                 empty.setTextColor(COLOR_SECONDARY);
                                 list.addView(empty);
                             } else {
@@ -1931,7 +1984,7 @@ public class MainActivity extends Activity {
                     @Override public void onError(Exception error) {
                         if (!isFinishing() && !isDestroyed() && showingDictionaryManager && list != null) {
                             list.removeAllViews();
-                            TextView message = text("Couldn't load the local dictionary. Please try again.", 14, false);
+                            TextView message = text(getString(R.string.couldn_t_load_the_local_dictionary_please_try_again), 14, false);
                             list.addView(message);
                         }
                     }
@@ -1947,19 +2000,19 @@ public class MainActivity extends Activity {
             row.setPadding(dp(12), dp(12), dp(10), dp(12));
             LinearLayout labels = new LinearLayout(this);
             labels.setOrientation(LinearLayout.VERTICAL);
-            TextView term = text(entry.term + (entry.isDefault ? "" : "  ·  CUSTOM"), 15, true);
+            TextView term = text(entry.isDefault ? entry.term : getString(R.string.custom_dictionary_term, entry.term), 15, true);
             TextView category = text(dictionaryCategoryName(entry.category), 12, false);
             category.setTextColor(COLOR_SECONDARY);
             labels.addView(term);
             labels.addView(category);
             row.addView(labels, new LinearLayout.LayoutParams(0, -2, 1));
             if (entry.isProtected) {
-                TextView essential = text("Essential", 11, true);
+                TextView essential = text(getString(R.string.essential), 11, true);
                 essential.setTextColor(COLOR_PRIMARY);
                 essential.setPadding(dp(5), 0, dp(6), 0);
                 row.addView(essential);
             } else if (!entry.isDefault) {
-                TextView remove = iconAction("✕", 0xFF9D5349, "Delete phrase");
+                TextView remove = iconAction("✕", 0xFF9D5349, getString(R.string.delete_phrase));
                 row.addView(remove, new LinearLayout.LayoutParams(dp(36), dp(44)));
                 remove.setOnClickListener(v -> confirmDeleteCustomEntry(entry));
             }
@@ -1968,7 +2021,7 @@ public class MainActivity extends Activity {
             enabled.setShowText(false);
             enabled.setChecked(entry.enabled);
             enabled.setEnabled(!entry.isProtected);
-            enabled.setContentDescription("Enable " + entry.term);
+            enabled.setContentDescription(getString(R.string.enable_dictionary_term, entry.term));
             enabled.setThumbTintList(android.content.res.ColorStateList.valueOf(0xFFFFFFFF));
             enabled.setTrackTintList(android.content.res.ColorStateList.valueOf(entry.enabled ? COLOR_PRIMARY : 0xFFB5B4AA));
             row.addView(enabled, new LinearLayout.LayoutParams(-2, -2));
@@ -1980,14 +2033,14 @@ public class MainActivity extends Activity {
                             @Override public void onSuccess(Integer changed) {
                                 if (!showingDictionaryManager || isFinishing() || isDestroyed()) return;
                                 if (changed == null || changed == 0) Toast.makeText(MainActivity.this,
-                                        "This essential command cannot be disabled.", Toast.LENGTH_SHORT).show();
+                                        getString(R.string.this_essential_command_cannot_be_disabled), Toast.LENGTH_SHORT).show();
                                 if (entry.languageTag.equals(language)) loadSpeechDictionary();
                                 showDictionaryManager(dictionaryManagerLanguage);
                             }
                             @Override public void onError(Exception error) {
                                 if (!showingDictionaryManager || isFinishing() || isDestroyed()) return;
                                 Toast.makeText(MainActivity.this,
-                                        "Couldn't update this dictionary entry.", Toast.LENGTH_LONG).show();
+                                        getString(R.string.couldn_t_update_this_dictionary_entry), Toast.LENGTH_LONG).show();
                                 showDictionaryManager(dictionaryManagerLanguage);
                             }
                         });
@@ -2003,17 +2056,19 @@ public class MainActivity extends Activity {
             if (values[i].equals(dictionaryManagerLanguage)) selected = i;
         }
         new AlertDialog.Builder(this)
-                .setTitle("Dictionary language")
+                .setTitle(getString(R.string.dictionary_language))
                 .setSingleChoiceItems(labels, selected, (dialog, which) -> {
                     dialog.dismiss();
                     showDictionaryManager(values[which]);
                 })
-                .setNegativeButton("Cancel", null)
+                .setNegativeButton(getString(R.string.cancel), null)
                 .show();
     }
 
     private void showAddDictionaryEntryDialog() {
         View screen = showFigmaScreen(R.layout.screen_vocabulary_form);
+        setTextIfPresent(screen, R.id.vocabulary_form_language,
+                dictionaryLanguageName(dictionaryManagerLanguage));
         EditText phrase = screen.findViewById(R.id.vocabulary_phrase);
         android.widget.Spinner category = screen.findViewById(R.id.vocabulary_category);
         Button cancel = screen.findViewById(R.id.action_cancel_vocabulary);
@@ -2023,7 +2078,7 @@ public class MainActivity extends Activity {
             String term = phrase.getText().toString().trim();
             String normalized = SpeechCommandFilter.normalizeTerm(term);
             if (normalized.isEmpty() || term.length() > 80 || normalized.split("\\s+").length > 8) {
-                phrase.setError("Use a phrase of up to 80 characters and 8 words."); return;
+                phrase.setError(getString(R.string.use_a_phrase_of_up_to_80_characters_and_8_words)); return;
             }
             String[] values = {SpeechDictionaryEntry.CATEGORY_COMMAND,
                     SpeechDictionaryEntry.CATEGORY_GREETING, SpeechDictionaryEntry.CATEGORY_FILLER};
@@ -2032,28 +2087,28 @@ public class MainActivity extends Activity {
                     dictionaryManagerLanguage, values[index], true, false, false);
             speechDictionaryRepository.insert(entry, new SpeechDictionaryRepository.ResultCallback<Long>() {
                 @Override public void onSuccess(Long id) {
-                    if (id == null || id < 0) { Toast.makeText(MainActivity.this, "Phrase already exists.", Toast.LENGTH_LONG).show(); return; }
-                    Toast.makeText(MainActivity.this, "Vocabulary added.", Toast.LENGTH_SHORT).show();
+                    if (id == null || id < 0) { Toast.makeText(MainActivity.this, getString(R.string.phrase_already_exists), Toast.LENGTH_LONG).show(); return; }
+                    Toast.makeText(MainActivity.this, getString(R.string.vocabulary_added), Toast.LENGTH_SHORT).show();
                     if (dictionaryManagerLanguage.equals(language)) loadSpeechDictionary();
                     showDictionaryManager(dictionaryManagerLanguage);
                 }
-                @Override public void onError(Exception error) { Toast.makeText(MainActivity.this, "Couldn't save phrase.", Toast.LENGTH_LONG).show(); }
+                @Override public void onError(Exception error) { Toast.makeText(MainActivity.this, getString(R.string.couldn_t_save_phrase), Toast.LENGTH_LONG).show(); }
             });
         });
     }
 
     private void confirmDeleteCustomEntry(SpeechDictionaryEntry entry) {
         new AlertDialog.Builder(this)
-                .setTitle("Remove custom word?")
-                .setMessage("Remove “" + entry.term + "” from this device's speech dictionary?")
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("Remove", (dialog, which) ->
+                .setTitle(getString(R.string.remove_custom_word))
+                .setMessage(getString(R.string.confirm_delete_dictionary_term, entry.term))
+                .setNegativeButton(getString(R.string.cancel), null)
+                .setPositiveButton(getString(R.string.remove), (dialog, which) ->
                         speechDictionaryRepository.deleteCustomEntry(entry.id,
                                 new SpeechDictionaryRepository.ResultCallback<Integer>() {
                                     @Override public void onSuccess(Integer deleted) {
                                         Toast.makeText(MainActivity.this,
-                                                deleted != null && deleted > 0 ? "Custom word removed." :
-                                                        "Default vocabulary cannot be removed.",
+                                                deleted != null && deleted > 0 ? getString(R.string.custom_word_removed) :
+                                                        getString(R.string.default_vocabulary_cannot_be_removed),
                                                 Toast.LENGTH_SHORT).show();
                                         if (dictionaryManagerLanguage.equals(language)) loadSpeechDictionary();
                                         showDictionaryManager(dictionaryManagerLanguage);
@@ -2061,7 +2116,7 @@ public class MainActivity extends Activity {
 
                                     @Override public void onError(Exception error) {
                                         Toast.makeText(MainActivity.this,
-                                                "Couldn't remove this word.", Toast.LENGTH_LONG).show();
+                                                getString(R.string.couldn_t_remove_this_word), Toast.LENGTH_LONG).show();
                                     }
                                 }))
                 .show();
@@ -2069,17 +2124,15 @@ public class MainActivity extends Activity {
 
     private void confirmRestoreDictionaryDefaults() {
         new AlertDialog.Builder(this)
-                .setTitle("Restore default vocabulary?")
-                .setMessage("This re-enables VoiceDeck's original words for " +
-                        dictionaryLanguageName(dictionaryManagerLanguage) +
-                        ". Your custom words will be kept.")
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("Restore", (dialog, which) ->
+                .setTitle(getString(R.string.restore_default_vocabulary))
+                .setMessage(getString(R.string.confirm_restore_dictionary, dictionaryLanguageName(dictionaryManagerLanguage)))
+                .setNegativeButton(getString(R.string.cancel), null)
+                .setPositiveButton(getString(R.string.restore), (dialog, which) ->
                         speechDictionaryRepository.restoreDefaults(dictionaryManagerLanguage,
                                 SpeechDictionaryDefaults.createEntries(),
                                 new SpeechDictionaryRepository.ResultCallback<Integer>() {
                                     @Override public void onSuccess(Integer restored) {
-                                        Toast.makeText(MainActivity.this, "Default vocabulary restored.",
+                                        Toast.makeText(MainActivity.this, getString(R.string.default_vocabulary_restored),
                                                 Toast.LENGTH_SHORT).show();
                                         if (dictionaryManagerLanguage.equals(language)) loadSpeechDictionary();
                                         showDictionaryManager(dictionaryManagerLanguage);
@@ -2087,7 +2140,7 @@ public class MainActivity extends Activity {
 
                                     @Override public void onError(Exception error) {
                                         Toast.makeText(MainActivity.this,
-                                                "Couldn't restore default vocabulary.", Toast.LENGTH_LONG).show();
+                                                getString(R.string.couldn_t_restore_default_vocabulary), Toast.LENGTH_LONG).show();
                                     }
                                 }))
                 .show();
@@ -2100,16 +2153,16 @@ public class MainActivity extends Activity {
     }
 
     private String dictionaryCategoryName(String category) {
-        if (SpeechDictionaryEntry.CATEGORY_GREETING.equals(category)) return "GREETINGS";
-        if (SpeechDictionaryEntry.CATEGORY_FILLER.equals(category)) return "FILLER WORDS";
-        return "COMMANDS";
+        if (SpeechDictionaryEntry.CATEGORY_GREETING.equals(category)) return getString(R.string.greetings);
+        if (SpeechDictionaryEntry.CATEGORY_FILLER.equals(category)) return getString(R.string.filler_words);
+        return getString(R.string.commands);
     }
 
     private void openLegalPage(String url) {
         try {
             startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
         } catch (ActivityNotFoundException e) {
-            Toast.makeText(this, "No browser is available to open this page.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.no_browser_is_available_to_open_this_page), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -2124,15 +2177,17 @@ public class MainActivity extends Activity {
         LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(0, dp(12), 0, dp(4));
         TextView name = text(label, 16, true); row.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView state = text(granted ? "Allowed" : "Not allowed", 15, true);
+        TextView state = text(granted ? getString(R.string.allowed) : getString(R.string.not_allowed), 15, true);
         state.setTextColor(granted ? COLOR_PRIMARY : COLOR_SECONDARY); row.addView(state); parent.addView(row);
     }
+
+    private AlertDialog languageChooser;
 
     private void showLanguageChooser() {
         LinearLayout panel = new LinearLayout(this); panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(22), dp(18), dp(22), dp(14));
         panel.setBackground(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 24));
-        panel.addView(text("Voice search language", 22, true));
+        panel.addView(text(getString(R.string.voice_search_language), 22, true));
         RadioGroup group = new RadioGroup(this); group.setOrientation(RadioGroup.VERTICAL);
         String[] labels = {"English", "मराठी", "हिन्दी"};
         String[] values = {"en-IN", "mr-IN", "hi-IN"};
@@ -2144,14 +2199,16 @@ public class MainActivity extends Activity {
             final String selected = values[i];
             option.setOnClickListener(v -> {
                 language = selected; getPreferences(MODE_PRIVATE).edit().putString("language", language).apply();
-                loadSpeechDictionary();
-                loadContactAliases(contactLoadGeneration);
-                showSettings();
+                if (languageChooser != null) languageChooser.dismiss();
+                if (!selected.equals(getResources().getConfiguration().getLocales().get(0).toLanguageTag())) {
+                    recreate();
+                }
             });
             group.addView(option, new RadioGroup.LayoutParams(-1, dp(58)));
         }
         panel.addView(group);
-        AlertDialog dialog = new AlertDialog.Builder(this).setView(panel).setNegativeButton("Close", null).create();
+        AlertDialog dialog = new AlertDialog.Builder(this).setView(panel).setNegativeButton(getString(R.string.close), null).create();
+        languageChooser = dialog;
         dialog.setOnShowListener(d -> {
             if (dialog.getWindow() != null) dialog.getWindow().setBackgroundDrawable(roundedBackground(COLOR_SURFACE, COLOR_BORDER, 24));
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(COLOR_PRIMARY);
@@ -2193,6 +2250,8 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        refreshManualSearch = null;
+        if (languageChooser != null) languageChooser.dismiss();
         if (splashFinish != null) splashHandler.removeCallbacks(splashFinish);
         if (splashAnimations != null) splashAnimations.cancel();
         if (splashOverlay != null) splashOverlay.animate().cancel();

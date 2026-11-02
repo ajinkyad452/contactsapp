@@ -31,13 +31,13 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="BEST MATCH"
+                android:text="@string/best_match"
                 style="@style/Text.VoiceDeck.Eyebrow" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Here’s who I found"
+                android:text="@string/here_s_who_i_found"
                 style="@style/Text.VoiceDeck.Caption" />
         </LinearLayout>
 
@@ -70,7 +70,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/space_3"
                     android:gravity="center"
-                    android:id="@+id/contact_name" android:text="Sarah Mitchell"
+                    android:id="@+id/contact_name" android:text=""
                     android:textColor="@color/vd_text"
                     android:textSize="23sp"
                     android:textStyle="bold" />
@@ -80,7 +80,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/space_1"
                     android:gravity="center"
-                    android:id="@+id/contact_phone" android:text="+44 7700 900 138"
+                    android:id="@+id/contact_phone" android:text=""
                     style="@style/Text.VoiceDeck.Body" />
 
                 <View
@@ -102,7 +102,7 @@
                         android:layout_marginEnd="@dimen/space_2"
                         android:layout_weight="1"
                         android:drawableStart="@drawable/ic_call"
-                        android:text="Call"
+                        android:text="@string/call"
                         style="@style/Widget.VoiceDeck.Button.Primary" />
 
                     <Button android:backgroundTint="@null"
@@ -123,7 +123,7 @@
                     android:layout_marginTop="@dimen/space_3"
                     android:background="?android:attr/selectableItemBackground"
                     android:gravity="center"
-                    android:text="Tap for email, birthday and other details  ›"
+                    android:text="@string/tap_for_email_birthday_and_other_details"
                     style="@style/Text.VoiceDeck.Caption" />
             </LinearLayout>
 
@@ -146,7 +146,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="CONTACT DETAILS"
+                        android:text="@string/contact_details"
                         style="@style/Text.VoiceDeck.Eyebrow" />
                     <ImageButton
                         android:id="@+id/action_flip_icon"
@@ -155,14 +155,14 @@
                         android:background="@drawable/bg_sage_circle"
                         android:src="@drawable/ic_refresh"
                         android:padding="12dp"
-                        android:contentDescription="Back to card front" />
+                        android:contentDescription="@string/back_to_card_front" />
                 </LinearLayout>
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/space_1"
-                    android:id="@+id/contact_back_name" android:text="Sarah Mitchell"
+                    android:id="@+id/contact_back_name" android:text=""
                     android:textColor="@color/vd_text"
                     android:textSize="23sp"
                     android:textStyle="bold" />
@@ -185,7 +185,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="22dp"
-                    android:text="No additional information saved for this contact."
+                    android:text="@string/no_additional_information_saved_for_this_contact"
                     android:textSize="13sp"
                     android:textColor="@color/vd_text_muted"
                     android:visibility="gone" />
@@ -196,7 +196,7 @@
                     android:id="@+id/action_google_contacts"
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/button_height_secondary"
-                    android:text="Open in Google Contacts"
+                    android:text="@string/open_in_google_contacts"
                     android:drawableStart="@drawable/ic_contact_external"
                     android:drawablePadding="10dp"
                     style="@style/Widget.VoiceDeck.Button.Outline" />
@@ -206,7 +206,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/button_height_secondary"
                     android:layout_marginTop="@dimen/space_2"
-                    android:text="Back to card front"
+                    android:text="@string/back_to_card_front"
                     android:drawableStart="@drawable/ic_refresh"
                     android:drawablePadding="9dp"
                     style="@style/Widget.VoiceDeck.Button.Text" />
@@ -235,7 +235,7 @@
                 android:layout_height="64dp"
                 android:layout_marginHorizontal="@dimen/space_8"
                 android:background="@drawable/bg_primary_circle"
-                android:contentDescription="Start another voice search"
+                android:contentDescription="@string/start_another_voice_search"
                 android:padding="@dimen/space_4"
                 android:src="@drawable/ic_mic_white" />
 
@@ -253,7 +253,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:id="@+id/contact_count" android:text="1 of 8"
+            android:id="@+id/contact_count" android:text=""
             style="@style/Text.VoiceDeck.Caption" />
     </LinearLayout>
 </ScrollView>
