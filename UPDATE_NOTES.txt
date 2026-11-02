@@ -1,0 +1,17 @@
+VoiceDeck: typed alias fix and app language selection
+Based on GitHub develop commit ab22c70 (2026-11-02).
+
+Open this as a separate project folder so your existing checkout remains available.
+With Java 17, Gradle 8.9 and Android SDK 35:
+  gradle :app:testDebugUnitTest :app:assembleDebug
+
+Typed search now includes selected-language aliases, including partial names.
+Settings > App and voice language switches the interface and recognition language
+between English, Hindi and Marathi. Choice applies immediately and survives restart.
+
+45 logic tests passed in a lightweight JVM harness; Java syntax and resource checks
+passed. Full Gradle build and phone/instrumented testing were not available here.
+See README.md and DEBUGGING_LOG.md for validation steps and limits.
+
+No release version bump, database schema change or new dependency.
+No commits or pushes have been made to GitHub.
